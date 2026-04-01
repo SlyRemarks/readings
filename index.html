@@ -118,3 +118,22 @@
                 let i = 0;
                 rooms.forEach(room => {
                     const t = parseFloat(data[i++]).toFixed(1);
+                    const h = Math.round(data[i++]);
+
+                    document.getElementById(`t-val-${room.tempId}`).innerText = t;
+                    document.getElementById(`h-val-${room.humId}`).innerText = h;
+                    
+                    updateGauge(`t-arc-${room.tempId}`, t, 10, 35, getTempColor);
+                    updateGauge(`h-arc-${room.humId}`, h, 0, 100, getHumColor);
+                });
+                document.getElementById('status').innerText = "Sync: " + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+            } catch (e) { document.getElementById('status').innerText = "Offline"; }
+        }
+
+        createCards();
+        updateData();
+        setInterval(updateData, 30000);
+        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
+    </script>
+</body>
+</html>
