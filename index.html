@@ -19,14 +19,13 @@
             display: flex; flex-direction: column; justify-content: space-around;
         }
 
-        .room-name { font-weight: 800; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; color: #666; }
+        .room-name { font-weight: 800; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; color: #666; }
         
-        /* Side-by-Side Layout */
         .gauges-row { display: flex; justify-content: space-around; align-items: center; }
         
-        .gauge-box { position: relative; width: 45%; max-width: 140px; }
+        .gauge-box { position: relative; width: 46%; max-width: 140px; }
         
-        svg { width: 100%; height: auto; }
+        svg { width: 100%; height: auto; display: block; }
         .gauge-base { fill: none; stroke: #eee; stroke-width: 10; stroke-linecap: round; }
         .gauge-progress { 
             fill: none; stroke-width: 10; stroke-linecap: round; 
@@ -34,9 +33,21 @@
             transition: all 1s ease-out; transform: rotate(-180deg); transform-origin: 50% 50%;
         }
         
-        .val-display { position: absolute; top: 65%; left: 50%; transform: translate(-50%, -50%); width: 100%; }
-        .num { font-size: 1.3rem; font-weight: 800; display: block; line-height: 1; }
-        .unit { font-size: 0.5rem; color: #aaa; font-weight: 700; text-transform: uppercase; }
+        /* Centering Logic */
+        .val-display { 
+            position: absolute; 
+            top: 50%; /* Moved up from 65% */
+            left: 50%; 
+            transform: translate(-50%, -20%); /* Fine-tuned vertical alignment */
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .num { font-size: 1.4rem; font-weight: 800; display: block; line-height: 1; color: #222; }
+        .unit { font-size: 0.55rem; color: #bbb; font-weight: 700; text-transform: uppercase; margin-top: 2px; }
 
         #status { position: fixed; bottom: 4px; width: 100%; font-size: 0.5rem; text-align: center; color: #ccc; }
     </style>
@@ -119,10 +130,8 @@
                 rooms.forEach(room => {
                     const t = parseFloat(data[i++]).toFixed(1);
                     const h = Math.round(data[i++]);
-
                     document.getElementById(`t-val-${room.tempId}`).innerText = t;
                     document.getElementById(`h-val-${room.humId}`).innerText = h;
-                    
                     updateGauge(`t-arc-${room.tempId}`, t, 10, 35, getTempColor);
                     updateGauge(`h-arc-${room.humId}`, h, 0, 100, getHumColor);
                 });
