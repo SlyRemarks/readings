@@ -20,26 +20,21 @@
         }
 
         .room-name { font-weight: 800; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; color: #666; }
-        
         .gauges-row { display: flex; justify-content: space-around; align-items: center; }
-        
         .gauge-box { position: relative; width: 46%; max-width: 140px; }
         
         svg { width: 100%; height: auto; display: block; }
         
-        /* The Background Grey Track */
-        .gauge-base { fill: none; stroke: #eee; stroke-width: 10; stroke-linecap: round; }
-        
-        /* The Colored Progress Bar */
+        /* Removed .gauge-base style as we won't use the grey line */
+
         .gauge-progress { 
             fill: none; 
             stroke-width: 10; 
             stroke-linecap: round; 
-            /* 110 is the approximate arc length of the 180-degree semi-circle */
             stroke-dasharray: 110; 
             stroke-dashoffset: 110; 
             transition: stroke-dashoffset 1s ease-out, stroke 0.5s ease;
-            /* Rotating -180deg ensures the 'start' of the path is on the left */
+            /* Rotating -180deg anchors the start at 9 o'clock */
             transform: rotate(-180deg); 
             transform-origin: 50% 50%;
         }
@@ -81,7 +76,6 @@
                     <div class="gauges-row">
                         <div class="gauge-box">
                             <svg viewBox="0 0 100 100">
-                                <path class="gauge-base" d="M 15 50 A 35 35 0 0 1 85 50" />
                                 <path class="gauge-progress" id="t-arc-${room.tempId}" d="M 15 50 A 35 35 0 0 1 85 50" />
                             </svg>
                             <div class="val-display">
@@ -91,7 +85,6 @@
                         </div>
                         <div class="gauge-box">
                             <svg viewBox="0 0 100 100">
-                                <path class="gauge-base" d="M 15 50 A 35 35 0 0 1 85 50" />
                                 <path class="gauge-progress" id="h-arc-${room.humId}" d="M 15 50 A 35 35 0 0 1 85 50" />
                             </svg>
                             <div class="val-display">
@@ -121,10 +114,7 @@
             const el = document.getElementById(elId);
             const clamped = Math.min(Math.max(val, min), max);
             const percent = (clamped - min) / (max - min);
-            
-            // stroke-dashoffset: 110 is empty (left), 0 is full (right)
             const offset = 110 - (percent * 110); 
-            
             el.style.strokeDashoffset = offset;
             el.style.stroke = colorFn(val);
         }
@@ -142,10 +132,8 @@
                 rooms.forEach(room => {
                     const t = parseFloat(data[i++]).toFixed(1);
                     const h = Math.round(data[i++]);
-
                     document.getElementById(`t-val-${room.tempId}`).innerText = t;
                     document.getElementById(`h-val-${room.humId}`).innerText = h;
-                    
                     updateGauge(`t-arc-${room.tempId}`, t, 10, 35, getTempColor);
                     updateGauge(`h-arc-${room.humId}`, h, 0, 100, getHumColor);
                 });
