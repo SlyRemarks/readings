@@ -4,51 +4,56 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="manifest" href="manifest.json">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#007bff">
-    <title>Home Climate</title>
+    <title>Climate Gauges</title>
     <style>
-        :root { --bg: #f8f9fa; --card: #ffffff; --primary: #007bff; --text: #333; }
-        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); margin: 0; padding: 15px; color: var(--text); }
-        h1 { font-size: 1.4rem; padding-left: 5px; margin-bottom: 20px; font-weight: 800; }
+        :root { --bg: #f0f2f5; --card: #ffffff; --text: #333; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; color: var(--text); }
+        h1 { font-size: 1.2rem; text-align: center; margin-bottom: 20px; opacity: 0.7; }
         
-        .container { display: grid; grid-template-columns: 1fr; gap: 15px; }
+        .container { display: grid; grid-template-columns: 1fr; gap: 20px; }
         
-        /* Base Card Style */
         .card { 
-            padding: 20px; 
-            border-radius: 20px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            transition: background-color 0.5s ease, color 0.5s ease;
-            background-color: var(--card);
+            background: var(--card); padding: 20px; border-radius: 24px; 
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05); text-align: center;
+            transition: all 0.5s ease; border-top: 6px solid transparent;
         }
 
-        /* Humidity Status Colors */
-        .hum-low { background-color: #e3f2fd; border-left: 8px solid #2196f3; }    /* Blue (<40%) */
-        .hum-mid { background-color: #e8f5e9; border-left: 8px solid #4caf50; }    /* Green (40-60%) */
-        .hum-high { background-color: #ffebee; border-left: 8px solid #f44336; }   /* Red (>60%) */
+        /* Humidity Border Colors */
+        .hum-low { border-top-color: #2196f3; }
+        .hum-mid { border-top-color: #4caf50; }
+        .hum-high { border-top-color: #f44336; }
 
-        .room-name { font-weight: 700; font-size: 1.1rem; margin-bottom: 15px; display: block; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 8px; }
-        .data-row { display: flex; justify-content: space-between; align-items: center; }
-        .stat { flex: 1; }
-        .label { font-size: 0.7rem; text-transform: uppercase; color: #666; display: block; margin-bottom: 4px; }
-        .value { font-size: 1.8rem; font-weight: 800; color: #222; }
-        .unit { font-size: 0.9rem; color: #444; margin-left: 2px; }
-        .divider { width: 1px; background: rgba(0,0,0,0.1); height: 40px; margin: 0 15px; }
+        .room-name { font-weight: 800; font-size: 1.1rem; display: block; margin-bottom: 10px; }
         
-        #status { font-size: 0.7rem; text-align: center; color: #aaa; margin-top: 30px; text-transform: uppercase; }
+        /* Gauge Styling */
+        .gauge-container { position: relative; width: 160px; margin: 0 auto; }
+        .gauge-base { fill: none; stroke: #eee; stroke-width: 12; stroke-linecap: round; }
+        .gauge-progress { 
+            fill: none; stroke: #007bff; stroke-width: 12; 
+            stroke-linecap: round; stroke-dasharray: 251.2; 
+            stroke-dashoffset: 251.2; transition: stroke-dashoffset 1s ease-out;
+            transform: rotate(-180deg); transform-origin: 50% 50%;
+        }
+        
+        .temp-display { position: absolute; top: 55%; left: 50%; transform: translate(-50%, -50%); }
+        .temp-val { font-size: 2rem; font-weight: 800; display: block; }
+        .temp-unit { font-size: 0.8rem; color: #888; }
+
+        .hum-row { margin-top: 15px; padding-top: 10px; border-top: 1px solid #f0f0f0; color: #666; font-size: 0.9rem; }
+        .hum-val { font-weight: 700; color: #333; }
+        
+        #status { font-size: 0.6rem; text-align: center; color: #aaa; margin-top: 30px; }
     </style>
 </head>
 <body>
 
-    <h1>Home Climate</h1>
+    <h1>Home Dashboard</h1>
     <div class="container" id="dashboard"></div>
-    <div id="status">Connecting...</div>
+    <div id="status">Syncing...</div>
 
     <script>
         const API_KEY = "256cd79c98126a993e5b48790285f0cc";
-        
         const rooms = [
             { name: "Living Room",   tempId: "537676", humId: "537677" },
             { name: "Big Bedroom",    tempId: "537680", humId: "537681" },
@@ -56,76 +61,67 @@
         ];
 
         function createCards() {
-            const container = document.getElementById('dashboard');
-            container.innerHTML = rooms.map(room => `
+            document.getElementById('dashboard').innerHTML = rooms.map(room => `
                 <div class="card" id="card-${room.tempId}">
                     <span class="room-name">${room.name}</span>
-                    <div class="data-row">
-                        <div class="stat">
-                            <span class="label">Temp</span>
-                            <span class="value" id="temp-${room.tempId}">--</span><span class="unit">°C</span>
+                    <div class="gauge-container">
+                        <svg viewBox="0 0 100 100">
+                            <path class="gauge-base" d="M 10 50 A 40 40 0 0 1 90 50" />
+                            <path class="gauge-progress" id="progress-${room.tempId}" d="M 10 50 A 40 40 0 0 1 90 50" />
+                        </svg>
+                        <div class="temp-display">
+                            <span class="temp-val" id="temp-${room.tempId}">--</span>
+                            <span class="temp-unit">°CELSIUS</span>
                         </div>
-                        <div class="divider"></div>
-                        <div class="stat">
-                            <span class="label">Humidity</span>
-                            <span class="value" id="hum-${room.humId}">--</span><span class="unit">%</span>
-                        </div>
+                    </div>
+                    <div class="hum-row">
+                        Humidity: <span class="hum-val" id="hum-${room.humId}">--</span>%
                     </div>
                 </div>
             `).join('');
         }
 
-        // Logic for background colors based on Humidity
-        function getHumidityClass(val) {
-            if (val < 40) return 'hum-low';   // Blue
-            if (val <= 60) return 'hum-mid';  // Green
-            return 'hum-high';                // Red
+        function setGauge(id, temp) {
+            const el = document.getElementById(`progress-${id}`);
+            // Map temp (0 to 40°C) to stroke-dashoffset (251.2 to 0)
+            const min = 0;
+            const max = 40;
+            const clampedTemp = Math.min(Math.max(temp, min), max);
+            const percent = (clampedTemp - min) / (max - min);
+            const offset = 251.2 - (percent * 125.6); // 125.6 is half the circle
+            el.style.strokeDashoffset = offset;
         }
 
         async function updateData() {
             const ids = rooms.flatMap(r => [r.tempId, r.humId]).join(',');
-            const targetUrl = `https://emoncms.org/feed/fetch.json?ids=${ids}&apikey=${API_KEY}`;
-            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+            const url = `https://corsproxy.io/?${encodeURIComponent(`https://emoncms.org/feed/fetch.json?ids=${ids}&apikey=${API_KEY}`)}`;
 
             try {
-                const response = await fetch(proxyUrl);
-                const data = await response.json();
-                
-                if (!data || data === false) return;
+                const res = await fetch(url);
+                const data = await res.json();
+                if (!data) return;
 
-                let dataIndex = 0;
+                let i = 0;
                 rooms.forEach(room => {
-                    const tempEl = document.getElementById(`temp-${room.tempId}`);
-                    const humEl = document.getElementById(`hum-${room.humId}`);
-                    const cardEl = document.getElementById(`card-${room.tempId}`);
+                    const temp = parseFloat(data[i++]).toFixed(1);
+                    const hum = Math.round(data[i++]);
+
+                    document.getElementById(`temp-${room.tempId}`).innerText = temp;
+                    document.getElementById(`hum-${room.humId}`).innerText = hum;
                     
-                    if (data[dataIndex] !== null) {
-                        const temp = parseFloat(data[dataIndex++]).toFixed(1);
-                        const hum = Math.round(data[dataIndex++]);
+                    setGauge(room.tempId, temp);
 
-                        tempEl.innerText = temp;
-                        humEl.innerText = hum;
-
-                        // Apply the color class to the card
-                        cardEl.className = 'card ' + getHumidityClass(hum);
-                    }
+                    // Humidity color logic
+                    const card = document.getElementById(`card-${room.tempId}`);
+                    card.className = 'card ' + (hum < 40 ? 'hum-low' : hum <= 60 ? 'hum-mid' : 'hum-high');
                 });
-
-                document.getElementById('status').innerText = "Last Update: " + new Date().toLocaleTimeString();
-
-            } catch (e) {
-                console.error("Fetch failed:", e);
-                document.getElementById('status').innerText = "Network Error";
-            }
+                document.getElementById('status').innerText = "Updated: " + new Date().toLocaleTimeString();
+            } catch (e) { document.getElementById('status').innerText = "Offline"; }
         }
 
         createCards();
         updateData();
         setInterval(updateData, 30000);
-
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js');
-        }
     </script>
 </body>
 </html>
