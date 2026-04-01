@@ -25,8 +25,6 @@
         
         svg { width: 100%; height: auto; display: block; }
         
-        /* Removed .gauge-base style as we won't use the grey line */
-
         .gauge-progress { 
             fill: none; 
             stroke-width: 10; 
@@ -34,8 +32,8 @@
             stroke-dasharray: 110; 
             stroke-dashoffset: 110; 
             transition: stroke-dashoffset 1s ease-out, stroke 0.5s ease;
-            /* Rotating -180deg anchors the start at 9 o'clock */
-            transform: rotate(-180deg); 
+            /* This rotation ensures the line starts at 9 o'clock and fills clockwise */
+            transform: rotate(0deg); 
             transform-origin: 50% 50%;
         }
         
@@ -114,7 +112,11 @@
             const el = document.getElementById(elId);
             const clamped = Math.min(Math.max(val, min), max);
             const percent = (clamped - min) / (max - min);
+            
+            // To sweep clockwise from left:
+            // Dashoffset 110 (left start) to 0 (right end)
             const offset = 110 - (percent * 110); 
+            
             el.style.strokeDashoffset = offset;
             el.style.stroke = colorFn(val);
         }
