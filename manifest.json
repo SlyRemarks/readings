@@ -1,6 +1,6 @@
 {
-  "name": "Home Climate Monitor",
-  "short_name": "Climate",
+  "name": "Home Climate",
+  "short_name": "Readings",
   "description": "Real-time EmonCMS temperature dashboard",
   "start_url": "index.html",
   "display": "standalone",
@@ -8,7 +8,7 @@
   "theme_color": "#007bff",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/4052/4052984.png",
+      "src": "https://cdn-icons-png.flaticon.com/512/2100/2100100.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
