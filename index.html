@@ -26,15 +26,22 @@
         .gauge-box { position: relative; width: 46%; max-width: 140px; }
         
         svg { width: 100%; height: auto; display: block; }
+        
+        /* The Background Grey Track */
         .gauge-base { fill: none; stroke: #eee; stroke-width: 10; stroke-linecap: round; }
         
+        /* The Colored Progress Bar */
         .gauge-progress { 
-            fill: none; stroke-width: 10; stroke-linecap: round; 
-            /* 110 is the visible length of our semi-circle arc */
-            stroke-dasharray: 110 251.2; 
+            fill: none; 
+            stroke-width: 10; 
+            stroke-linecap: round; 
+            /* 110 is the approximate arc length of the 180-degree semi-circle */
+            stroke-dasharray: 110; 
             stroke-dashoffset: 110; 
             transition: stroke-dashoffset 1s ease-out, stroke 0.5s ease;
-            transform: rotate(-180deg); transform-origin: 50% 50%;
+            /* Rotating -180deg ensures the 'start' of the path is on the left */
+            transform: rotate(-180deg); 
+            transform-origin: 50% 50%;
         }
         
         .val-display { 
@@ -113,12 +120,9 @@
         function updateGauge(elId, val, min, max, colorFn) {
             const el = document.getElementById(elId);
             const clamped = Math.min(Math.max(val, min), max);
-            
-            // Calculate percentage based on the specific range provided
             const percent = (clamped - min) / (max - min);
             
-            // 110 is the stroke-dasharray length of our visible arc
-            // Offset of 110 = empty, 0 = full
+            // stroke-dashoffset: 110 is empty (left), 0 is full (right)
             const offset = 110 - (percent * 110); 
             
             el.style.strokeDashoffset = offset;
@@ -142,7 +146,6 @@
                     document.getElementById(`t-val-${room.tempId}`).innerText = t;
                     document.getElementById(`h-val-${room.humId}`).innerText = h;
                     
-                    // Now both use the same relative scale (0% to 100% of their range)
                     updateGauge(`t-arc-${room.tempId}`, t, 10, 35, getTempColor);
                     updateGauge(`h-arc-${room.humId}`, h, 0, 100, getHumColor);
                 });
