@@ -5,21 +5,56 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#f4f7f9">
+    <meta name="theme-color" content="#121212">
     <title>Climate Dashboard</title>
     <style>
-        :root { --bg: #f4f7f9; --card: #ffffff; --text: #333; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; color: var(--text); overflow: hidden; }
+        /* Light Mode Defaults */
+        :root { 
+            --bg: #f4f7f9; 
+            --card: #ffffff; 
+            --text: #333; 
+            --subtext: #888;
+            --gauge-track: #eee;
+            --num-color: #222;
+        }
+
+        /* Automatic Dark Mode */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #121212;
+                --card: #1e1e1e;
+                --text: #e0e0e0;
+                --subtext: #999;
+                --gauge-track: #333;
+                --num-color: #ffffff;
+            }
+        }
+
+        body { 
+            font-family: -apple-system, sans-serif; 
+            background: var(--bg); 
+            margin: 0; 
+            padding: 10px; 
+            color: var(--text); 
+            overflow: hidden; 
+            transition: background 0.3s ease;
+        }
         
         .container { display: grid; grid-template-columns: 1fr; gap: 8px; height: calc(100vh - 30px); }
         
         .card { 
-            background: var(--card); padding: 12px 10px; border-radius: 20px; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: center;
-            display: flex; flex-direction: column; justify-content: space-around;
+            background: var(--card); 
+            padding: 12px 10px; 
+            border-radius: 20px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+            text-align: center;
+            display: flex; 
+            flex-direction: column; 
+            justify-content: space-around;
+            transition: background 0.3s ease;
         }
 
-        .room-name { font-weight: 800; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; color: #666; }
+        .room-name { font-weight: 800; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; color: var(--subtext); }
         .gauges-row { display: flex; justify-content: space-around; align-items: center; }
         .gauge-box { position: relative; width: 46%; max-width: 140px; }
         
@@ -32,7 +67,6 @@
             stroke-dasharray: 110; 
             stroke-dashoffset: 110; 
             transition: stroke-dashoffset 1s ease-out, stroke 0.5s ease;
-            /* This rotation ensures the line starts at 9 o'clock and fills clockwise */
             transform: rotate(0deg); 
             transform-origin: 50% 50%;
         }
@@ -48,10 +82,10 @@
             align-items: center;
         }
         
-        .num { font-size: 1.3rem; font-weight: 800; display: block; line-height: 1; color: #222; }
-        .unit { font-size: 0.5rem; color: #bbb; font-weight: 700; text-transform: uppercase; margin-top: 3px; }
+        .num { font-size: 1.3rem; font-weight: 800; display: block; line-height: 1; color: var(--num-color); }
+        .unit { font-size: 0.5rem; color: var(--subtext); font-weight: 700; text-transform: uppercase; margin-top: 3px; }
 
-        #status { position: fixed; bottom: 4px; width: 100%; font-size: 0.5rem; text-align: center; color: #ccc; }
+        #status { position: fixed; bottom: 4px; width: 100%; font-size: 0.5rem; text-align: center; color: var(--subtext); opacity: 0.6; }
     </style>
 </head>
 <body>
@@ -110,13 +144,10 @@
 
         function updateGauge(elId, val, min, max, colorFn) {
             const el = document.getElementById(elId);
+            if(!el) return;
             const clamped = Math.min(Math.max(val, min), max);
             const percent = (clamped - min) / (max - min);
-            
-            // To sweep clockwise from left:
-            // Dashoffset 110 (left start) to 0 (right end)
             const offset = 110 - (percent * 110); 
-            
             el.style.strokeDashoffset = offset;
             el.style.stroke = colorFn(val);
         }
