@@ -14,12 +14,12 @@
         .container { display: grid; grid-template-columns: 1fr; gap: 8px; height: calc(100vh - 30px); }
         
         .card { 
-            background: var(--card); padding: 10px; border-radius: 20px; 
+            background: var(--card); padding: 12px 10px; border-radius: 20px; 
             box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: center;
             display: flex; flex-direction: column; justify-content: space-around;
         }
 
-        .room-name { font-weight: 800; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; color: #666; }
+        .room-name { font-weight: 800; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; color: #666; }
         
         .gauges-row { display: flex; justify-content: space-around; align-items: center; }
         
@@ -27,27 +27,29 @@
         
         svg { width: 100%; height: auto; display: block; }
         .gauge-base { fill: none; stroke: #eee; stroke-width: 10; stroke-linecap: round; }
+        
         .gauge-progress { 
             fill: none; stroke-width: 10; stroke-linecap: round; 
-            stroke-dasharray: 251.2; stroke-dashoffset: 251.2; 
-            transition: all 1s ease-out; transform: rotate(-180deg); transform-origin: 50% 50%;
+            /* 110 is the visible length of our semi-circle arc */
+            stroke-dasharray: 110 251.2; 
+            stroke-dashoffset: 110; 
+            transition: stroke-dashoffset 1s ease-out, stroke 0.5s ease;
+            transform: rotate(-180deg); transform-origin: 50% 50%;
         }
         
-        /* Centering Logic */
         .val-display { 
             position: absolute; 
-            top: 50%; /* Moved up from 65% */
+            top: 50%; 
             left: 50%; 
-            transform: translate(-50%, -20%); /* Fine-tuned vertical alignment */
+            transform: translate(-50%, -15%); 
             width: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
         }
         
-        .num { font-size: 1.4rem; font-weight: 800; display: block; line-height: 1; color: #222; }
-        .unit { font-size: 0.55rem; color: #bbb; font-weight: 700; text-transform: uppercase; margin-top: 2px; }
+        .num { font-size: 1.3rem; font-weight: 800; display: block; line-height: 1; color: #222; }
+        .unit { font-size: 0.5rem; color: #bbb; font-weight: 700; text-transform: uppercase; margin-top: 3px; }
 
         #status { position: fixed; bottom: 4px; width: 100%; font-size: 0.5rem; text-align: center; color: #ccc; }
     </style>
@@ -111,8 +113,14 @@
         function updateGauge(elId, val, min, max, colorFn) {
             const el = document.getElementById(elId);
             const clamped = Math.min(Math.max(val, min), max);
+            
+            // Calculate percentage based on the specific range provided
             const percent = (clamped - min) / (max - min);
-            const offset = 220 - (percent * 110); 
+            
+            // 110 is the stroke-dasharray length of our visible arc
+            // Offset of 110 = empty, 0 = full
+            const offset = 110 - (percent * 110); 
+            
             el.style.strokeDashoffset = offset;
             el.style.stroke = colorFn(val);
         }
@@ -130,8 +138,11 @@
                 rooms.forEach(room => {
                     const t = parseFloat(data[i++]).toFixed(1);
                     const h = Math.round(data[i++]);
+
                     document.getElementById(`t-val-${room.tempId}`).innerText = t;
                     document.getElementById(`h-val-${room.humId}`).innerText = h;
+                    
+                    // Now both use the same relative scale (0% to 100% of their range)
                     updateGauge(`t-arc-${room.tempId}`, t, 10, 35, getTempColor);
                     updateGauge(`h-arc-${room.humId}`, h, 0, 100, getHumColor);
                 });
