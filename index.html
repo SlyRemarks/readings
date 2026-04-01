@@ -43,4 +43,115 @@
         .temp-val { font-size: 2.2rem; font-weight: 800; display: block; color: #222; }
         .temp-unit { font-size: 0.7rem; color: #aaa; font-weight: 700; }
 
-        .hum-row { margin-top: 2
+        .hum-row { margin-top: 20px; padding-top: 15px; border-top: 1px solid #f0f0f0; color: #888; font-size: 0.9rem; font-weight: 500; }
+        .hum-val { font-weight: 800; color: #333; }
+        
+        #status { font-size: 0.65rem; text-align: center; color: #bbb; margin-top: 40px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+    </style>
+</head>
+<body>
+
+    <h1>Home Climate Dashboard</h1>
+    <div class="container" id="dashboard"></div>
+    <div id="status">Syncing Data...</div>
+
+    <script>
+        const API_KEY = "256cd79c98126a993e5b48790285f0cc";
+        const rooms = [
+            { name: "Living Room",   tempId: "537676", humId: "537677" },
+            { name: "Big Bedroom",    tempId: "537680", humId: "537681" },
+            { name: "Small Bedroom",  tempId: "537674", humId: "537675" }
+        ];
+
+        function createCards() {
+            document.getElementById('dashboard').innerHTML = rooms.map(room => `
+                <div class="card" id="card-${room.tempId}">
+                    <span class="room-name">${room.name}</span>
+                    <div class="gauge-container">
+                        <svg viewBox="0 0 100 100">
+                            <path class="gauge-base" d="M 15 50 A 35 35 0 0 1 85 50" />
+                            <path class="gauge-progress" id="progress-${room.tempId}" d="M 15 50 A 35 35 0 0 1 85 50" />
+                        </svg>
+                        <div class="temp-display">
+                            <span class="temp-val" id="temp-${room.tempId}">--</span>
+                            <span class="temp-unit">°CELSIUS</span>
+                        </div>
+                    </div>
+                    <div class="hum-row">
+                        HUMIDITY: <span class="hum-val" id="hum-${room.humId}">--</span>%
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Color Logic for Temperature Gauge
+        function getTempColor(temp) {
+            if (temp < 18) return '#2196f3'; // Cold Blue
+            if (temp <= 24) return '#4caf50'; // Comfortable Green
+            if (temp <= 27) return '#ff9800'; // Warm Orange
+            return '#f44336';                // Hot Red
+        }
+
+        function setGauge(id, temp) {
+            const el = document.getElementById(`progress-${id}`);
+            const min = 10; // Gauge starts at 10°C
+            const max = 35; // Gauge ends at 35°C
+            const clampedTemp = Math.min(Math.max(temp, min), max);
+            const percent = (clampedTemp - min) / (max - min);
+            
+            // stroke-dasharray for this SVG arc is ~110
+            const maxDraw = 110; 
+            const offset = 220 - (percent * maxDraw); 
+            
+            el.style.strokeDashoffset = offset;
+            el.style.stroke = getTempColor(temp);
+        }
+
+        async function updateData() {
+            const ids = rooms.flatMap(r => [r.tempId, r.humId]).join(',');
+            const targetUrl = `https://emoncms.org/feed/fetch.json?ids=${ids}&apikey=${API_KEY}`;
+            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+
+            try {
+                const response = await fetch(proxyUrl);
+                const data = await response.json();
+                
+                if (!data || data === false) return;
+
+                let i = 0;
+                rooms.forEach(room => {
+                    const temp = parseFloat(data[i++]).toFixed(1);
+                    const hum = Math.round(data[i++]);
+
+                    // Update Text
+                    document.getElementById(`temp-${room.tempId}`).innerText = temp;
+                    document.getElementById(`hum-${room.humId}`).innerText = hum;
+                    
+                    // Update Gauge
+                    setGauge(room.tempId, temp);
+
+                    // Update Card Border (Humidity Logic)
+                    const card = document.getElementById(`card-${room.tempId}`);
+                    card.className = 'card ' + (hum < 40 ? 'hum-low' : hum <= 60 ? 'hum-mid' : 'hum-high');
+                });
+
+                document.getElementById('status').innerText = "Last Sync: " + new Date().toLocaleTimeString();
+
+            } catch (e) {
+                console.error("Fetch failed:", e);
+                document.getElementById('status').innerText = "Reconnecting...";
+            }
+        }
+
+        createCards();
+        updateData();
+        setInterval(updateData, 30000);
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js');
+            });
+        }
+    </script>
+</body>
+</html>
