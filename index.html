@@ -5,53 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#007bff">
-    <meta name="apple-mobile-web-app-capable" content="yes">
     <title>Home Climate</title>
     <style>
         :root { --bg: #f8f9fa; --card: #ffffff; --primary: #007bff; --text: #333; }
         body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); margin: 0; padding: 15px; color: var(--text); }
         h1 { font-size: 1.4rem; padding-left: 5px; margin-bottom: 20px; font-weight: 800; }
-        
         .container { display: grid; grid-template-columns: 1fr; gap: 15px; }
-        
-        .card { 
-            background: var(--card); 
-            padding: 20px; 
-            border-radius: 20px; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        }
+        .card { background: var(--card); padding: 20px; border-radius: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
         .room-name { font-weight: 700; font-size: 1.1rem; margin-bottom: 15px; display: block; border-bottom: 1px solid #eee; padding-bottom: 8px; }
-        
         .data-row { display: flex; justify-content: space-between; align-items: center; }
-        
         .stat { flex: 1; }
-        .label { font-size: 0.7rem; text-transform: uppercase; color: #888; letter-spacing: 0.5px; display: block; margin-bottom: 4px; }
+        .label { font-size: 0.7rem; text-transform: uppercase; color: #888; display: block; margin-bottom: 4px; }
         .value { font-size: 1.8rem; font-weight: 800; color: var(--primary); }
-        .unit { font-size: 0.9rem; font-weight: 400; color: #555; margin-left: 2px; }
-        
+        .unit { font-size: 0.9rem; color: #555; margin-left: 2px; }
         .divider { width: 1px; background: #eee; height: 40px; margin: 0 15px; }
-        
-        #status { font-size: 0.7rem; text-align: center; color: #aaa; margin-top: 30px; text-transform: uppercase; letter-spacing: 1px; }
+        #status { font-size: 0.7rem; text-align: center; color: #aaa; margin-top: 30px; text-transform: uppercase; }
     </style>
 </head>
 <body>
 
     <h1>Home Climate</h1>
-    
     <div class="container" id="dashboard"></div>
     <div id="status">Connecting...</div>
 
     <script>
-        // --- DATA CONFIGURATION ---
-        const API_KEY = "";
+        const API_KEY = "256cd79c98126a993e5b48790285f0cc";
         
         const rooms = [
-            { name: "Living Room",   tempId: "", humId: "" },
-            { name: "Big Bedroom",    tempId: "", humId: "" },
-            { name: "Small Bedroom",  tempId: "", humId: "" }
+            { name: "Living Room",   tempId: "537676", humId: "537677" },
+            { name: "Big Bedroom",    tempId: "537680", humId: "537681" },
+            { name: "Small Bedroom",  tempId: "537674", humId: "537675" }
         ];
 
-        // This function builds the UI on the screen
         function createCards() {
             const container = document.getElementById('dashboard');
             container.innerHTML = rooms.map(room => `
@@ -72,45 +57,45 @@
             `).join('');
         }
 
-        // Global function that EmonCMS calls when it returns the data
-        window.handleEmonData = function(data) {
-            let dataIndex = 0;
-            rooms.forEach(room => {
-                const tempEl = document.getElementById(`temp-${room.tempId}`);
-                const humEl = document.getElementById(`hum-${room.humId}`);
-                
-                // Map the array data back to the UI elements
-                if (data[dataIndex] !== undefined) {
-                    tempEl.innerText = parseFloat(data[dataIndex++]).toFixed(1);
-                    humEl.innerText = Math.round(data[dataIndex++]);
-                }
-            });
-            document.getElementById('status').innerText = "Last Update: " + new Date().toLocaleTimeString();
-            
-            // Remove the script tag to keep things clean
-            const oldScript = document.getElementById('emon-loader');
-            if (oldScript) oldScript.remove();
-        };
-
-        // Inject a script tag to bypass CORS policy
-
-        
-        function updateData() {
+        async function updateData() {
             const allIds = rooms.flatMap(r => [r.tempId, r.humId]).join(',');
-            const url = `https://emoncms.org/feed/fetch.json?ids=${allIds}&apikey=${API_KEY}&callback=handleEmonData`;
+            const targetUrl = `https://emoncms.org/feed/fetch.json?ids=${allIds}&apikey=${API_KEY}`;
             
-            const script = document.createElement('script');
-            script.id = 'emon-loader';
-            script.src = url;
-            document.body.appendChild(script);
+            // This is the key: we wrap the EmonCMS URL inside the proxy URL
+            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+
+            try {
+                const response = await fetch(proxyUrl);
+                
+                if (!response.ok) throw new Error("Network response was not ok");
+                
+                const data = await response.json();
+                
+                if (!Array.isArray(data)) throw new Error("Data format incorrect");
+
+                let dataIndex = 0;
+                rooms.forEach(room => {
+                    const tempEl = document.getElementById(`temp-${room.tempId}`);
+                    const humEl = document.getElementById(`hum-${room.humId}`);
+                    
+                    if (data[dataIndex] !== undefined) {
+                        tempEl.innerText = parseFloat(data[dataIndex++]).toFixed(1);
+                        humEl.innerText = Math.round(data[dataIndex++]);
+                    }
+                });
+
+                document.getElementById('status').innerText = "Last Update: " + new Date().toLocaleTimeString();
+
+            } catch (e) {
+                console.error("Fetch failed", e);
+                document.getElementById('status').innerText = "Error: Check connection/API key";
+            }
         }
 
-        // Initialization
         createCards();
         updateData();
-        setInterval(updateData, 30000); // Auto-refresh every 30 seconds
+        setInterval(updateData, 30000);
 
-        // Standard PWA Service Worker Registration
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js', { scope: './' });
         }
