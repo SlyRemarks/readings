@@ -3,46 +3,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="manifest" href="manifest.json">
-    <title>EmonCMS Mobile</title>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#007bff">
+    <title>Home Climate</title>
     <style>
-        body { font-family: sans-serif; text-align: center; background: #f4f4f9; padding: 20px; }
-        .card { background: white; padding: 20px; border-radius: 15px; margin: 10px; shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .value { font-size: 2.5em; font-weight: bold; color: #007bff; }
+        :root { --bg: #f8f9fa; --card: #ffffff; --primary: #007bff; --text: #333; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); margin: 0; padding: 15px; color: var(--text); }
+        h1 { font-size: 1.4rem; padding-left: 5px; margin-bottom: 20px; }
+        
+        .container { display: grid; grid-template-columns: 1fr; gap: 15px; }
+        
+        .card { 
+            background: var(--card); 
+            padding: 20px; 
+            border-radius: 20px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .room-name { font-weight: 700; font-size: 1.1rem; margin-bottom: 15px; display: block; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+        
+        .data-row { display: flex; justify-content: space-between; align-items: center; }
+        
+        .stat { flex: 1; }
+        .label { font-size: 0.75rem; text-transform: uppercase; color: #888; letter-spacing: 0.5px; display: block; }
+        .value { font-size: 1.8rem; font-weight: 800; color: var(--primary); }
+        .unit { font-size: 0.9rem; font-weight: 400; color: #555; }
+        
+        .divider { width: 1px; background: #eee; height: 40px; margin: 0 15px; }
     </style>
 </head>
 <body>
+
     <h1>Home Climate</h1>
-    <div class="card">
-        <div>Temperature</div>
-        <div id="temp" class="value">--</div><span>°C</span>
-    </div>
-    <div class="card">
-        <div>Humidity</div>
-        <div id="hum" class="value">--</div><span>%</span>
-    </div>
+    
+    <div class="container" id="dashboard"></div>
 
     <script>
-        const API_KEY = "YOUR_READ_API_KEY";
-        const TEMP_ID = "YOUR_TEMP_FEED_ID";
-        const HUM_ID = "YOUR_HUM_FEED_ID";
+        const API_KEY = "256cd79c98126a993e5b48790285f0cc";
+        
+        // Configuration: Add your Temp and Hum IDs for each room
+        const rooms = [
+            { name: "Living Room", tempId: "537676", humId: "537677" },
+            { name: "Big Bedroom",    tempId: "537680", humId: "537681" },
+            { name: "Small Bedroom",    tempId: "537674", humId: "537675" }
+        ];
 
-        async function updateData() {
-            try {
-                const response = await fetch(`https://emoncms.org/feed/fetch.json?ids=${TEMP_ID},${HUM_ID}&apikey=${API_KEY}`);
-                const data = await response.json();
-                document.getElementById('temp').innerText = data[0];
-                document.getElementById('hum').innerText = data[1];
-            } catch (e) { console.error("Update failed", e); }
+        function createCards() {
+            const container = document.getElementById('dashboard');
+            container.innerHTML = rooms.map(room => `
+                <div class="card">
+                    <span class="room-name">${room.name}</span>
+                    <div class="data-row">
+                        <div class="stat">
+                            <span class="label">Temperature</span>
+                            <span class="value" id="temp-${room.tempId}">--</span><span class="unit">°C</span>
+                        </div>
+                        <div class="divider"></div>
+                        <div class="stat">
+                            <span class="label">Humidity</span>
+                            <span class="value" id="hum-${room.humId}">--</span><span class="unit">%</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
         }
 
-        // Update every 30 seconds
-        setInterval(updateData, 30000);
-        updateData();
+        async function updateData() {
+            // Collect all IDs into one comma-separated string
+            const allIds = rooms.flatMap(r => [r.tempId, r.humId]).join(',');
+            
+            try {
+                const response = await fetch(`https://emoncms.org/feed/fetch.json?ids=${allIds}&apikey=${API_KEY}`);
+                const data = await response.json();
+                
+                // data is an array in the same order as our IDs
+                let dataIndex = 0;
+                rooms.forEach(room => {
+                    const tempEl = document.getElementById(`temp-${room.tempId}`);
+                    const humEl = document.getElementById(`hum-${room.humId}`);
+                    
+                    if (tempEl) tempEl.innerText = parseFloat(data[dataIndex++]).toFixed(1);
+                    if (humEl) humEl.innerText = Math.round(data[dataIndex++]);
+                });
+            } catch (e) {
+                console.error("Fetch failed", e);
+            }
+        }
 
-        // Register Service Worker
+        createCards();
+        updateData();
+        setInterval(updateData, 30000);
+
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js');
+            navigator.serviceWorker.register('./sw.js', { scope: './' });
         }
     </script>
 </body>
