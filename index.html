@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -10,27 +10,42 @@
     <title>Climate Dashboard</title>
     <style>
         :root { --bg: #f4f7f9; --card: #ffffff; --text: #333; }
-        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); margin: 0; padding: 15px; color: var(--text); }
-        h1 { font-size: 1.2rem; text-align: center; margin-bottom: 20px; font-weight: 700; opacity: 0.8; }
+        body { 
+            font-family: -apple-system, system-ui, sans-serif; 
+            background: var(--bg); 
+            margin: 0; 
+            padding: 10px; 
+            color: var(--text);
+            overflow: hidden; /* Prevents accidental scrolling */
+        }
         
-        .container { display: grid; grid-template-columns: 1fr; gap: 20px; }
+        .container { 
+            display: grid; 
+            grid-template-columns: 1fr; 
+            gap: 10px; 
+            height: calc(100vh - 40px); /* Fill screen minus status bar */
+        }
         
-        /* Card Styling */
         .card { 
-            background: var(--card); padding: 25px 20px; border-radius: 28px; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center;
-            transition: all 0.4s ease; border-top: 8px solid #eee;
+            background: var(--card); 
+            padding: 12px 10px; 
+            border-radius: 18px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border-top: 6px solid #eee;
+            transition: all 0.4s ease;
         }
 
-        /* Humidity Border Colors */
-        .hum-low { border-top-color: #2196f3; }    /* Blue (<40%) */
-        .hum-mid { border-top-color: #4caf50; }    /* Green (40-60%) */
-        .hum-high { border-top-color: #f44336; }   /* Red (>60%) */
+        .hum-low { border-top-color: #2196f3; }
+        .hum-mid { border-top-color: #4caf50; }
+        .hum-high { border-top-color: #f44336; }
 
-        .room-name { font-weight: 800; font-size: 1.2rem; display: block; margin-bottom: 15px; letter-spacing: -0.5px; }
+        .room-name { font-weight: 800; font-size: 1rem; margin-bottom: 5px; opacity: 0.9; }
         
-        /* Gauge Styling */
-        .gauge-container { position: relative; width: 180px; margin: 0 auto; }
+        .gauge-container { position: relative; width: 130px; margin: 0 auto; }
         .gauge-base { fill: none; stroke: #f0f0f0; stroke-width: 10; stroke-linecap: round; }
         .gauge-progress { 
             fill: none; stroke: #007bff; stroke-width: 10; 
@@ -40,20 +55,28 @@
         }
         
         .temp-display { position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%); }
-        .temp-val { font-size: 2.2rem; font-weight: 800; display: block; color: #222; }
-        .temp-unit { font-size: 0.7rem; color: #aaa; font-weight: 700; }
+        .temp-val { font-size: 1.6rem; font-weight: 800; color: #222; }
+        .temp-unit { font-size: 0.6rem; color: #aaa; font-weight: 700; }
 
-        .hum-row { margin-top: 20px; padding-top: 15px; border-top: 1px solid #f0f0f0; color: #888; font-size: 0.9rem; font-weight: 500; }
+        .hum-row { margin-top: 8px; padding-top: 8px; border-top: 1px solid #f0f0f0; color: #888; font-size: 0.8rem; }
         .hum-val { font-weight: 800; color: #333; }
         
-        #status { font-size: 0.65rem; text-align: center; color: #bbb; margin-top: 40px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+        #status { 
+            position: fixed; 
+            bottom: 5px; 
+            width: 100%; 
+            font-size: 0.55rem; 
+            text-align: center; 
+            color: #bbb; 
+            text-transform: uppercase; 
+            letter-spacing: 0.5px; 
+        }
     </style>
 </head>
 <body>
 
-    <h1>Home Climate Dashboard</h1>
     <div class="container" id="dashboard"></div>
-    <div id="status">Syncing Data...</div>
+    <div id="status">Syncing...</div>
 
     <script>
         const API_KEY = "256cd79c98126a993e5b48790285f0cc";
@@ -74,7 +97,7 @@
                         </svg>
                         <div class="temp-display">
                             <span class="temp-val" id="temp-${room.tempId}">--</span>
-                            <span class="temp-unit">°CELSIUS</span>
+                            <span class="temp-unit">°C</span>
                         </div>
                     </div>
                     <div class="hum-row">
@@ -84,74 +107,52 @@
             `).join('');
         }
 
-        // Color Logic for Temperature Gauge
         function getTempColor(temp) {
-            if (temp < 18) return '#2196f3'; // Cold Blue
-            if (temp <= 24) return '#4caf50'; // Comfortable Green
-            if (temp <= 27) return '#ff9800'; // Warm Orange
-            return '#f44336';                // Hot Red
+            if (temp < 18) return '#2196f3';
+            if (temp <= 24) return '#4caf50';
+            if (temp <= 27) return '#ff9800';
+            return '#f44336';
         }
 
         function setGauge(id, temp) {
             const el = document.getElementById(`progress-${id}`);
-            const min = 10; // Gauge starts at 10°C
-            const max = 35; // Gauge ends at 35°C
+            const min = 10;
+            const max = 35;
             const clampedTemp = Math.min(Math.max(temp, min), max);
             const percent = (clampedTemp - min) / (max - min);
-            
-            // stroke-dasharray for this SVG arc is ~110
             const maxDraw = 110; 
             const offset = 220 - (percent * maxDraw); 
-            
             el.style.strokeDashoffset = offset;
             el.style.stroke = getTempColor(temp);
         }
 
         async function updateData() {
             const ids = rooms.flatMap(r => [r.tempId, r.humId]).join(',');
-            const targetUrl = `https://emoncms.org/feed/fetch.json?ids=${ids}&apikey=${API_KEY}`;
-            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+            const url = `https://corsproxy.io/?${encodeURIComponent(`https://emoncms.org/feed/fetch.json?ids=${ids}&apikey=${API_KEY}`)}`;
 
             try {
-                const response = await fetch(proxyUrl);
+                const response = await fetch(url);
                 const data = await response.json();
-                
-                if (!data || data === false) return;
+                if (!data) return;
 
                 let i = 0;
                 rooms.forEach(room => {
                     const temp = parseFloat(data[i++]).toFixed(1);
                     const hum = Math.round(data[i++]);
-
-                    // Update Text
                     document.getElementById(`temp-${room.tempId}`).innerText = temp;
                     document.getElementById(`hum-${room.humId}`).innerText = hum;
-                    
-                    // Update Gauge
                     setGauge(room.tempId, temp);
-
-                    // Update Card Border (Humidity Logic)
                     const card = document.getElementById(`card-${room.tempId}`);
                     card.className = 'card ' + (hum < 40 ? 'hum-low' : hum <= 60 ? 'hum-mid' : 'hum-high');
                 });
-
-                document.getElementById('status').innerText = "Last Sync: " + new Date().toLocaleTimeString();
-
-            } catch (e) {
-                console.error("Fetch failed:", e);
-                document.getElementById('status').innerText = "Reconnecting...";
-            }
+                document.getElementById('status').innerText = "Sync: " + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            } catch (e) { document.getElementById('status').innerText = "Offline"; }
         }
 
         createCards();
         updateData();
         setInterval(updateData, 30000);
-
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js');
-            });
-        }
+        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
     </script>
 </body>
 </html>
