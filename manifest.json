@@ -1,7 +1,7 @@
-JSON
 {
   "name": "Home Climate Monitor",
   "short_name": "Climate",
+  "description": "Real-time EmonCMS temperature dashboard",
   "start_url": "index.html",
   "display": "standalone",
   "background_color": "#f8f9fa",
@@ -11,7 +11,7 @@ JSON
       "src": "https://cdn-icons-png.flaticon.com/512/4052/4052984.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     }
   ]
 }
