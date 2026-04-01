@@ -93,6 +93,8 @@
         };
 
         // Inject a script tag to bypass CORS policy
+
+        
         function updateData() {
             const allIds = rooms.flatMap(r => [r.tempId, r.humId]).join(',');
             const url = `https://emoncms.org/feed/fetch.json?ids=${allIds}&apikey=${API_KEY}&callback=handleEmonData`;
