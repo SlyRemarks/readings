@@ -8,7 +8,6 @@
     <meta name="theme-color" content="#121212">
     <title>Climate Dashboard</title>
     <style>
-        /* Light Mode Defaults */
         :root { 
             --bg: #f4f7f9; 
             --card: #ffffff; 
@@ -18,7 +17,6 @@
             --num-color: #222;
         }
 
-        /* Automatic Dark Mode */
         @media (prefers-color-scheme: dark) {
             :root {
                 --bg: #121212;
@@ -57,11 +55,13 @@
         .room-name { font-weight: 800; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; color: var(--subtext); }
         .gauges-row { display: flex; justify-content: space-around; align-items: center; }
         .gauge-box { position: relative; width: 46%; max-width: 140px; }
+        .gauge-box.full-width { width: 100%; max-width: 180px; margin: 0 auto; }
         
         svg { width: 100%; height: auto; display: block; }
         
         .gauge-progress { 
             fill: none; 
+            stroke: var(--gauge-track);
             stroke-width: 10; 
             stroke-linecap: round; 
             stroke-dasharray: 110; 
@@ -95,10 +95,14 @@
 
     <script>
         const API_KEY = "256cd79c98126a993e5b48790285f0cc";
+        
+        // --- CONFIGURATION ---
+        // Replace "YOUR_ID" with your actual Emoncms Feed ID for the cylinder
         const rooms = [
             { name: "Living Room",   tempId: "537676", humId: "537677" },
             { name: "Big Bedroom",    tempId: "537680", humId: "537681" },
-            { name: "Small Bedroom",  tempId: "537674", humId: "537675" }
+            { name: "Small Bedroom",  tempId: "537674", humId: "537675" },
+            { name: "Hot Water",      tempId: "YOUR_ID", humId: null } 
         ];
 
         function createCards() {
@@ -106,7 +110,7 @@
                 <div class="card">
                     <span class="room-name">${room.name}</span>
                     <div class="gauges-row">
-                        <div class="gauge-box">
+                        <div class="gauge-box ${!room.humId ? 'full-width' : ''}">
                             <svg viewBox="0 0 100 100">
                                 <path class="gauge-progress" id="t-arc-${room.tempId}" d="M 15 50 A 35 35 0 0 1 85 50" />
                             </svg>
@@ -115,6 +119,7 @@
                                 <span class="unit">Temp °C</span>
                             </div>
                         </div>
+                        ${room.humId ? `
                         <div class="gauge-box">
                             <svg viewBox="0 0 100 100">
                                 <path class="gauge-progress" id="h-arc-${room.humId}" d="M 15 50 A 35 35 0 0 1 85 50" />
@@ -123,7 +128,7 @@
                                 <span class="num" id="h-val-${room.humId}">--</span>
                                 <span class="unit">Hum %</span>
                             </div>
-                        </div>
+                        </div>` : ''}
                     </div>
                 </div>
             `).join('');
@@ -134,6 +139,13 @@
             if (t <= 24) return '#4caf50';
             if (t <= 27) return '#ff9800';
             return '#f44336';
+        }
+
+        function getWaterTempColor(t) {
+            if (t < 40) return '#2196f3'; // Cold
+            if (t <= 55) return '#4caf50'; // Ideal
+            if (t <= 65) return '#ff9800'; // Hot
+            return '#f44336'; // Very Hot
         }
 
         function getHumColor(h) {
@@ -153,25 +165,48 @@
         }
 
         async function updateData() {
-            const ids = rooms.flatMap(r => [r.tempId, r.humId]).join(',');
-            const url = `https://corsproxy.io/?${encodeURIComponent(`https://emoncms.org/feed/fetch.json?ids=${ids}&apikey=${API_KEY}`)}`;
+            // Fetch all non-null IDs
+            const feedIds = rooms.flatMap(r => [r.tempId, r.humId]).filter(id => id !== null);
+            const url = `https://corsproxy.io/?${encodeURIComponent(`https://emoncms.org/feed/fetch.json?ids=${feedIds.join(',')}&apikey=${API_KEY}`)}`;
 
             try {
                 const response = await fetch(url);
-                const data = await response.json();
-                if (!data) return;
+                const dataArray = await response.json();
+                if (!dataArray) return;
 
-                let i = 0;
-                rooms.forEach(room => {
-                    const t = parseFloat(data[i++]).toFixed(1);
-                    const h = Math.round(data[i++]);
-                    document.getElementById(`t-val-${room.tempId}`).innerText = t;
-                    document.getElementById(`h-val-${room.humId}`).innerText = h;
-                    updateGauge(`t-arc-${room.tempId}`, t, 10, 35, getTempColor);
-                    updateGauge(`h-arc-${room.humId}`, h, 0, 100, getHumColor);
+                // Create a map of ID -> Value for easier lookup
+                const dataMap = {};
+                feedIds.forEach((id, index) => {
+                    dataMap[id] = dataArray[index];
                 });
+
+                rooms.forEach(room => {
+                    // Update Temperature
+                    const tRaw = dataMap[room.tempId];
+                    if (tRaw !== undefined) {
+                        const t = parseFloat(tRaw).toFixed(1);
+                        document.getElementById(`t-val-${room.tempId}`).innerText = t;
+                        
+                        if (room.name === "Hot Water") {
+                            updateGauge(`t-arc-${room.tempId}`, t, 10, 80, getWaterTempColor);
+                        } else {
+                            updateGauge(`t-arc-${room.tempId}`, t, 10, 35, getTempColor);
+                        }
+                    }
+
+                    // Update Humidity
+                    if (room.humId && dataMap[room.humId] !== undefined) {
+                        const h = Math.round(dataMap[room.humId]);
+                        document.getElementById(`h-val-${room.humId}`).innerText = h;
+                        updateGauge(`h-arc-${room.humId}`, h, 0, 100, getHumColor);
+                    }
+                });
+                
                 document.getElementById('status').innerText = "Sync: " + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-            } catch (e) { document.getElementById('status').innerText = "Offline"; }
+            } catch (e) { 
+                console.error(e);
+                document.getElementById('status').innerText = "Offline"; 
+            }
         }
 
         createCards();
