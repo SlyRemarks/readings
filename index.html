@@ -10,115 +10,112 @@
     <style>
         :root { 
             --bg: #121212; --card-default: #1e1e1e; 
-            --text-card: #e0e0e0; --subtext-card: rgba(255,255,255,0.6);
+            --text-card: #e0e0e0; --subtext-card: rgba(255,255,255,0.7);
             --gauge-track: rgba(255,255,255,0.1); 
             --up-color: #ff5252; --down-color: #40c4ff;
             --hum-up: #40c4ff; --hum-down: #ffb74d;
         }
 
-        /* Prevent scrolling and fix height */
-        html, body { height: 100%; overflow: hidden; }
-
         body { 
             font-family: -apple-system, sans-serif; 
             background: var(--bg); 
             margin: 0; 
-            padding: 10px; 
-            display: flex;
-            flex-direction: column;
+            padding: 15px; 
+            padding-bottom: 80px; 
+            min-height: 100vh; 
             box-sizing: border-box; 
+            overflow-y: auto; /* Re-enable scrolling */
         }
 
-        /* 2x2 Grid for Phone Screens */
         .container { 
             display: grid; 
-            grid-template-columns: 1fr 1fr; 
-            grid-template-rows: 1fr 1fr;
-            gap: 10px; 
-            flex-grow: 1; /* Fills available space */
-            margin-bottom: 40px; /* Space for status bar */
+            grid-template-columns: 1fr; /* Full width cards */
+            gap: 15px; 
         }
         
         .card { 
             position: relative;
             background-color: var(--card-color, var(--card-default));
             background-image: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.3) 100%);
-            padding: 12px 8px; 
-            border-radius: 20px; 
+            padding: 30px 20px; 
+            border-radius: 32px; 
+            box-shadow: 0 12px 30px rgba(0,0,0,0.4); 
             text-align: center; 
             color: var(--text-card);
             overflow: hidden; 
             border: 1px solid rgba(255,255,255,0.05);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
         }
         
+        /* THEMATIC COLORS */
         .room-living-room { --card-color: #34495e; }
         .room-big-bedroom { --card-color: #6c5ce7; }
         .room-small-bedroom { --card-color: #e67e22; }
         .room-hot-water { --card-color: #c0392b; }
 
-        /* Smaller Illustration for compact grid */
+        /* Large Vector Illustration */
         .card-illustration {
             position: absolute;
-            bottom: -10px;
-            right: -10px;
-            width: 80px;
-            height: 80px;
-            opacity: 0.1;
+            bottom: -25px;
+            right: -20px;
+            width: 150px;
+            height: 150px;
+            opacity: 0.12;
             pointer-events: none;
             fill: #fff;
-            transform: rotate(-10deg);
+            transform: rotate(-15deg);
             z-index: 1;
         }
 
-        .card-content-wrapper { position: relative; z-index: 2; width: 100%; }
+        .card-content-wrapper { position: relative; z-index: 2; }
 
         .room-name { 
             font-weight: 800; 
-            font-size: 0.6rem; 
+            font-size: 0.8rem; 
             text-transform: uppercase; 
-            letter-spacing: 1px; 
-            margin-bottom: 8px; 
+            letter-spacing: 2px; 
+            margin-bottom: 25px; 
             color: var(--subtext-card); 
             display: block; 
         }
 
         .gauges-row { 
             display: flex; 
-            justify-content: space-around; 
+            justify-content: center; 
             align-items: center; 
-            gap: 4px; 
+            gap: 15px; 
         }
 
-        .gauge-box { position: relative; width: 46%; }
-        .gauge-box.solo { width: 70%; margin: 0 auto; }
+        .gauge-box { position: relative; width: 48%; max-width: 170px; }
+        .gauge-box.solo { width: 65%; max-width: 210px; }
         
         svg { width: 100%; height: auto; display: block; }
-        .gauge-bg { fill: none; stroke: var(--gauge-track); stroke-width: 12; stroke-linecap: round; }
-        .gauge-progress { fill: none; stroke-width: 12; stroke-linecap: round; stroke-dasharray: 110; stroke-dashoffset: 110; transition: stroke-dashoffset 1s ease-out, stroke 0.5s ease; }
+        .gauge-bg { fill: none; stroke: var(--gauge-track); stroke-width: 10; stroke-linecap: round; }
+        .gauge-progress { fill: none; stroke-width: 10; stroke-linecap: round; stroke-dasharray: 110; stroke-dashoffset: 110; transition: stroke-dashoffset 1s ease-out, stroke 0.5s ease; }
         
-        .val-display { position: absolute; top: 50%; left: 50%; transform: translate(-50%, 0%); width: 100%; }
+        .val-display { position: absolute; top: 52%; left: 50%; transform: translate(-50%, 0%); width: 100%; }
         
-        /* Smaller fonts for 2x2 grid */
-        .num { font-size: 1.1rem; font-weight: 800; color: #fff; letter-spacing: -0.5px; line-height: 1; text-shadow: 0 1px 3px rgba(0,0,0,0.4); }
-        .unit { font-size: 0.45rem; color: var(--subtext-card); font-weight: 700; text-transform: uppercase; margin-top: 2px; display: block; }
+        .num { font-size: 1.8rem; font-weight: 800; color: #fff; letter-spacing: -1px; line-height: 1; text-shadow: 0 1px 4px rgba(0,0,0,0.4); }
+        .unit { font-size: 0.6rem; color: var(--subtext-card); font-weight: 700; text-transform: uppercase; margin-top: 5px; display: block; }
         
-        .trend { font-size: 0.7rem; margin-left: 2px; font-weight: 900; }
+        .trend { font-size: 0.9rem; margin-left: 4px; font-weight: 900; }
+        .trend.up { color: var(--up-color); }
+        .trend.down { color: var(--down-color); }
+        .trend.h-up { color: var(--hum-up); }
+        .trend.h-down { color: var(--hum-down); }
         .trend.stable { color: #fff; opacity: 0.2; }
 
         #status { 
             position: fixed; 
             bottom: 0; left: 0; right: 0; 
-            padding: 12px 0; 
+            padding: 20px 0; 
             text-align: center; 
-            font-size: 0.55rem; 
+            font-size: 0.65rem; 
             color: var(--subtext-card); 
             font-weight: 700; 
             text-transform: uppercase; 
-            letter-spacing: 1px; 
-            background: var(--bg);
+            letter-spacing: 1.5px; 
+            background: linear-gradient(to top, var(--bg) 60%, transparent);
+            pointer-events: none;
         }
     </style>
 </head>
@@ -130,10 +127,10 @@
     <script>
         const API_KEY = "256cd79c98126a993e5b48790285f0cc";
         const rooms = [
-            { id: "living-room",   name: "Living",   tempId: "537676", humId: "537677", svg: '<path d="M10,65v25h15V75h50v15h15V65H10z M20,60V40h60v20h5V30l-10-10H25l-10,10v30H20z"/>' },
-            { id: "big-bedroom",    name: "Master",    tempId: "537680", humId: "537681", svg: '<path d="M15,50v40h70V50l-10-10H25L15,50z M25,45V30h50v15h5V25l-10-10H30L20,25v20H25z"/>' },
-            { id: "small-bedroom",  name: "Guest",  tempId: "537674", humId: "537675", svg: '<path d="M20,60v30h60V60H20z M30,55V40h40v15h5V35l-10-10H35L25,35v20H30z"/>' },
-            { id: "hot-water",      name: "Water",      tempId: "536155", humId: null, svg: '<path d="M20,70v20h60V70H20z M30,65V30c0-11,9-20,20-20s20,9,20,20v35H30z"/>' } 
+            { id: "living-room",   name: "Living Room",   tempId: "537676", humId: "537677", svg: '<path d="M10,65v25h15V75h50v15h15V65H10z M20,60V40h60v20h5V30l-10-10H25l-10,10v30H20z"/>' },
+            { id: "big-bedroom",    name: "Big Bedroom",    tempId: "537680", humId: "537681", svg: '<path d="M15,50v40h70V50l-10-10H25L15,50z M25,45V30h50v15h5V25l-10-10H30L20,25v20H25z"/>' },
+            { id: "small-bedroom",  name: "Small Bedroom",  tempId: "537674", humId: "537675", svg: '<path d="M20,60v30h60V60H20z M30,55V40h40v15h5V35l-10-10H35L25,35v20H30z"/>' },
+            { id: "hot-water",      name: "Hot Water",      tempId: "536155", humId: null, svg: '<path d="M20,70v20h60V70H20z M30,65V30c0-11,9-20,20-20s20,9,20,20v35H30z"/>' } 
         ];
 
         let feedHistory = {};
@@ -153,7 +150,7 @@
                                 </svg>
                                 <div class="val-display">
                                     <span class="num" id="t-container-${room.tempId}"><span id="t-val-${room.tempId}">--</span></span>
-                                    <span class="unit">°C</span>
+                                    <span class="unit">Temp °C</span>
                                 </div>
                             </div>
                             ${room.humId ? `
@@ -164,7 +161,7 @@
                                 </svg>
                                 <div class="val-display">
                                     <span class="num" id="h-container-${room.humId}"><span id="h-val-${room.humId}">--</span></span>
-                                    <span class="unit">%</span>
+                                    <span class="unit">Hum %</span>
                                 </div>
                             </div>` : ''}
                         </div>
@@ -217,7 +214,8 @@
                         const tCont = document.getElementById(`t-container-${room.tempId}`);
                         const oldT = tCont.querySelector('.trend'); if (oldT) oldT.remove();
                         tCont.insertAdjacentHTML('beforeend', getTrendHTML(currentT, pastT, false));
-                        updateGauge(`t-arc-${room.tempId}`, currentT, room.name === "Water" ? 15:10, room.name === "Water" ? 75:35, room.name === "Water" ? getWaterTempColor : getTempColor);
+                        const colorFn = room.name === "Hot Water" ? getWaterTempColor : getTempColor;
+                        updateGauge(`t-arc-${room.tempId}`, currentT, room.name === "Hot Water" ? 15:10, room.name === "Hot Water" ? 75:35, colorFn);
                     }
                     if (room.humId && dataMap[room.humId] !== undefined) {
                         const currentH = dataMap[room.humId];
@@ -233,263 +231,21 @@
                     }
                 });
                 lastSuccessTime = Date.now();
+                updateTimeAgo();
             } catch (e) { document.getElementById('status').innerText = "Offline"; }
         }
 
         function updateTimeAgo() {
             if (!lastSuccessTime) return;
             const diff = Math.floor((Date.now() - lastSuccessTime) / 1000);
-            document.getElementById('status').innerText = `Updated ${diff}s ago`;
-        }
-
-        createCards();
-        updateData();
-        setInterval(updateData, 60000);
-        setInterval(updateTimeAgo, 1000);
-    </script>
-</body>
-</html><!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <link rel="manifest" href="manifest.json">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#121212">
-    <title>Climate Dashboard</title>
-    <style>
-        :root { 
-            --bg: #121212; --card-default: #1e1e1e; 
-            --text-card: #e0e0e0; --subtext-card: rgba(255,255,255,0.6);
-            --gauge-track: rgba(255,255,255,0.1); 
-            --up-color: #ff5252; --down-color: #40c4ff;
-            --hum-up: #40c4ff; --hum-down: #ffb74d;
-        }
-
-        /* Prevent scrolling and fix height */
-        html, body { height: 100%; overflow: hidden; }
-
-        body { 
-            font-family: -apple-system, sans-serif; 
-            background: var(--bg); 
-            margin: 0; 
-            padding: 10px; 
-            display: flex;
-            flex-direction: column;
-            box-sizing: border-box; 
-        }
-
-        /* 2x2 Grid for Phone Screens */
-        .container { 
-            display: grid; 
-            grid-template-columns: 1fr 1fr; 
-            grid-template-rows: 1fr 1fr;
-            gap: 10px; 
-            flex-grow: 1; /* Fills available space */
-            margin-bottom: 40px; /* Space for status bar */
-        }
-        
-        .card { 
-            position: relative;
-            background-color: var(--card-color, var(--card-default));
-            background-image: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.3) 100%);
-            padding: 12px 8px; 
-            border-radius: 20px; 
-            text-align: center; 
-            color: var(--text-card);
-            overflow: hidden; 
-            border: 1px solid rgba(255,255,255,0.05);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-        
-        .room-living-room { --card-color: #34495e; }
-        .room-big-bedroom { --card-color: #6c5ce7; }
-        .room-small-bedroom { --card-color: #e67e22; }
-        .room-hot-water { --card-color: #c0392b; }
-
-        /* Smaller Illustration for compact grid */
-        .card-illustration {
-            position: absolute;
-            bottom: -10px;
-            right: -10px;
-            width: 80px;
-            height: 80px;
-            opacity: 0.1;
-            pointer-events: none;
-            fill: #fff;
-            transform: rotate(-10deg);
-            z-index: 1;
-        }
-
-        .card-content-wrapper { position: relative; z-index: 2; width: 100%; }
-
-        .room-name { 
-            font-weight: 800; 
-            font-size: 0.6rem; 
-            text-transform: uppercase; 
-            letter-spacing: 1px; 
-            margin-bottom: 8px; 
-            color: var(--subtext-card); 
-            display: block; 
-        }
-
-        .gauges-row { 
-            display: flex; 
-            justify-content: space-around; 
-            align-items: center; 
-            gap: 4px; 
-        }
-
-        .gauge-box { position: relative; width: 46%; }
-        .gauge-box.solo { width: 70%; margin: 0 auto; }
-        
-        svg { width: 100%; height: auto; display: block; }
-        .gauge-bg { fill: none; stroke: var(--gauge-track); stroke-width: 12; stroke-linecap: round; }
-        .gauge-progress { fill: none; stroke-width: 12; stroke-linecap: round; stroke-dasharray: 110; stroke-dashoffset: 110; transition: stroke-dashoffset 1s ease-out, stroke 0.5s ease; }
-        
-        .val-display { position: absolute; top: 50%; left: 50%; transform: translate(-50%, 0%); width: 100%; }
-        
-        /* Smaller fonts for 2x2 grid */
-        .num { font-size: 1.1rem; font-weight: 800; color: #fff; letter-spacing: -0.5px; line-height: 1; text-shadow: 0 1px 3px rgba(0,0,0,0.4); }
-        .unit { font-size: 0.45rem; color: var(--subtext-card); font-weight: 700; text-transform: uppercase; margin-top: 2px; display: block; }
-        
-        .trend { font-size: 0.7rem; margin-left: 2px; font-weight: 900; }
-        .trend.stable { color: #fff; opacity: 0.2; }
-
-        #status { 
-            position: fixed; 
-            bottom: 0; left: 0; right: 0; 
-            padding: 12px 0; 
-            text-align: center; 
-            font-size: 0.55rem; 
-            color: var(--subtext-card); 
-            font-weight: 700; 
-            text-transform: uppercase; 
-            letter-spacing: 1px; 
-            background: var(--bg);
-        }
-    </style>
-</head>
-<body>
-
-    <div class="container" id="dashboard"></div>
-    <div id="status">Syncing...</div>
-
-    <script>
-        const API_KEY = "256cd79c98126a993e5b48790285f0cc";
-        const rooms = [
-            { id: "living-room",   name: "Living",   tempId: "537676", humId: "537677", svg: '<path d="M10,65v25h15V75h50v15h15V65H10z M20,60V40h60v20h5V30l-10-10H25l-10,10v30H20z"/>' },
-            { id: "big-bedroom",    name: "Master",    tempId: "537680", humId: "537681", svg: '<path d="M15,50v40h70V50l-10-10H25L15,50z M25,45V30h50v15h5V25l-10-10H30L20,25v20H25z"/>' },
-            { id: "small-bedroom",  name: "Guest",  tempId: "537674", humId: "537675", svg: '<path d="M20,60v30h60V60H20z M30,55V40h40v15h5V35l-10-10H35L25,35v20H30z"/>' },
-            { id: "hot-water",      name: "Water",      tempId: "536155", humId: null, svg: '<path d="M20,70v20h60V70H20z M30,65V30c0-11,9-20,20-20s20,9,20,20v35H30z"/>' } 
-        ];
-
-        let feedHistory = {};
-        let lastSuccessTime = null;
-
-        function createCards() {
-            document.getElementById('dashboard').innerHTML = rooms.map(room => `
-                <div class="card room-${room.id}">
-                    <svg class="card-illustration" viewBox="0 0 100 100">${room.svg}</svg>
-                    <div class="card-content-wrapper">
-                        <span class="room-name">${room.name}</span>
-                        <div class="gauges-row">
-                            <div class="gauge-box ${!room.humId ? 'solo' : ''}">
-                                <svg viewBox="0 0 100 70">
-                                    <path class="gauge-bg" d="M 15 50 A 35 35 0 0 1 85 50" />
-                                    <path class="gauge-progress" id="t-arc-${room.tempId}" d="M 15 50 A 35 35 0 0 1 85 50" />
-                                </svg>
-                                <div class="val-display">
-                                    <span class="num" id="t-container-${room.tempId}"><span id="t-val-${room.tempId}">--</span></span>
-                                    <span class="unit">°C</span>
-                                </div>
-                            </div>
-                            ${room.humId ? `
-                            <div class="gauge-box">
-                                <svg viewBox="0 0 100 70">
-                                    <path class="gauge-bg" d="M 15 50 A 35 35 0 0 1 85 50" />
-                                    <path class="gauge-progress" id="h-arc-${room.humId}" d="M 15 50 A 35 35 0 0 1 85 50" />
-                                </svg>
-                                <div class="val-display">
-                                    <span class="num" id="h-container-${room.humId}"><span id="h-val-${room.humId}">--</span></span>
-                                    <span class="unit">%</span>
-                                </div>
-                            </div>` : ''}
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        const getTempColor = t => t < 18 ? '#40c4ff' : t <= 24 ? '#00e676' : t <= 27 ? '#ffb74d' : '#ff5252';
-        const getWaterTempColor = t => t < 40 ? '#40c4ff' : t <= 55 ? '#00e676' : t <= 65 ? '#ffb74d' : '#ff5252';
-        const getHumColor = h => h < 40 ? '#40c4ff' : h <= 60 ? '#00e676' : '#ff5252';
-
-        function updateGauge(elId, val, min, max, colorFn) {
-            const el = document.getElementById(elId);
-            if(!el) return;
-            const clamped = Math.min(Math.max(val, min), max);
-            const percent = (clamped - min) / (max - min);
-            el.style.strokeDashoffset = 110 - (percent * 110);
-            el.style.stroke = colorFn(val);
-        }
-
-        function getTrendHTML(current, past, isHumidity = false) {
-            if (past === undefined) return '';
-            const diff = current - past;
-            const threshold = isHumidity ? 0.5 : 0.05;
-            if (Math.abs(diff) < threshold) return '<span class="trend stable">−</span>';
-            if (isHumidity) return diff > 0 ? '<span class="trend h-up">▲</span>' : '<span class="trend h-down">▼</span>';
-            return diff > 0 ? '<span class="trend up">▲</span>' : '<span class="trend down">▼</span>';
-        }
-
-        async function updateData() {
-            const ids = rooms.flatMap(r => [r.tempId, r.humId]).filter(id => id !== null);
-            const url = `https://corsproxy.io/?${encodeURIComponent(`https://emoncms.org/feed/fetch.json?ids=${ids.join(',')}&apikey=${API_KEY}`)}`;
-
-            try {
-                const response = await fetch(url);
-                const dataArray = await response.json();
-                if (!dataArray) return;
-                const dataMap = {};
-                ids.forEach((id, index) => { dataMap[id] = parseFloat(dataArray[index]); });
-
-                rooms.forEach(room => {
-                    const currentT = dataMap[room.tempId];
-                    if (currentT !== undefined) {
-                        if (!feedHistory[room.tempId]) feedHistory[room.tempId] = [];
-                        const pastT = feedHistory[room.tempId][0];
-                        feedHistory[room.tempId].push(currentT);
-                        if (feedHistory[room.tempId].length > 5) feedHistory[room.tempId].shift();
-                        document.getElementById(`t-val-${room.tempId}`).innerText = currentT.toFixed(1);
-                        const tCont = document.getElementById(`t-container-${room.tempId}`);
-                        const oldT = tCont.querySelector('.trend'); if (oldT) oldT.remove();
-                        tCont.insertAdjacentHTML('beforeend', getTrendHTML(currentT, pastT, false));
-                        updateGauge(`t-arc-${room.tempId}`, currentT, room.name === "Water" ? 15:10, room.name === "Water" ? 75:35, room.name === "Water" ? getWaterTempColor : getTempColor);
-                    }
-                    if (room.humId && dataMap[room.humId] !== undefined) {
-                        const currentH = dataMap[room.humId];
-                        if (!feedHistory[room.humId]) feedHistory[room.humId] = [];
-                        const pastH = feedHistory[room.humId][0];
-                        feedHistory[room.humId].push(currentH);
-                        if (feedHistory[room.humId].length > 5) feedHistory[room.humId].shift();
-                        document.getElementById(`h-val-${room.humId}`).innerText = Math.round(currentH);
-                        const hCont = document.getElementById(`h-container-${room.humId}`);
-                        const oldH = hCont.querySelector('.trend'); if (oldH) oldH.remove();
-                        hCont.insertAdjacentHTML('beforeend', getTrendHTML(currentH, pastH, true));
-                        updateGauge(`h-arc-${room.humId}`, currentH, 0, 100, getHumColor);
-                    }
-                });
-                lastSuccessTime = Date.now();
-            } catch (e) { document.getElementById('status').innerText = "Offline"; }
-        }
-
-        function updateTimeAgo() {
-            if (!lastSuccessTime) return;
-            const diff = Math.floor((Date.now() - lastSuccessTime) / 1000);
-            document.getElementById('status').innerText = `Updated ${diff}s ago`;
+            let text = "";
+            if (diff < 60) text = `Updated ${diff}s ago`;
+            else {
+                const mins = Math.floor(diff / 60);
+                const secs = diff % 60;
+                text = `Updated ${mins}m ${secs}s ago`;
+            }
+            document.getElementById('status').innerText = text;
         }
 
         createCards();
