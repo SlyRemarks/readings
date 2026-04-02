@@ -58,9 +58,9 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%) rotate(-5deg);
-            width: 90%;       /* Stretches across most of the card */
+            width: 85%;       
             height: auto;
-            opacity: 0.05;    /* Very faint for subtle texture */
+            opacity: 0.05;    
             pointer-events: none;
             fill: #fff;
             z-index: 1;
@@ -74,7 +74,7 @@
             text-transform: uppercase; 
             letter-spacing: 3px; 
             margin-bottom: 25px; 
-            color: var(--text-card); 
+            color: #fff; 
             display: block; 
             text-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
@@ -130,22 +130,10 @@
         const API_KEY = "256cd79c98126a993e5b48790285f0cc";
         
         const rooms = [
-            { 
-                id: "living-room",   name: "Living Room",   tempId: "537676", humId: "537677", 
-                svg: '<path d="M10,85h80v5H10V85z M20,80h10V40H20V80z M70,80h10V40H70V80z M30,40h40v5H30V40z M35,80c0-10,5-15,15-25c10,10,15,15,15,25H35z M45,80c0-5,2-8,5-12c3,4,5,7,5,12H45z"/>' 
-            },
-            { 
-                id: "big-bedroom",    name: "Big Bedroom",    tempId: "537680", humId: "537681", 
-                svg: '<path d="M15,50v40h70V50l-10-10H25L15,50z M25,45V30h50v15h5V25l-10-10H30L20,25v20H25z"/>' 
-            },
-            { 
-                id: "small-bedroom",  name: "Small Bedroom",  tempId: "537674", humId: "537675", 
-                svg: '<path d="M20,60v30h60V60H20z M30,55V40h40v15h5V35l-10-10H35L25,35v20H30z"/>' 
-            },
-            { 
-                id: "hot-water",      name: "Hot Water",      tempId: "536155", humId: null, 
-                svg: '<path d="M20,70v20h60V70H20z M30,65V30c0-11,9-20,20-20s20,9,20,20v35H30z"/>' 
-            } 
+            { id: "living-room",   name: "Living Room",   tempId: "537676", humId: "537677", svg: '<path d="M10,85h80v5H10V85z M20,80h10V40H20V80z M70,80h10V40H70V80z M30,40h40v5H30V40z M35,80c0-10,5-15,15-25c10,10,15,15,15,25H35z M45,80c0-5,2-8,5-12c3,4,5,7,5,12H45z"/>' },
+            { id: "big-bedroom",    name: "Big Bedroom",    tempId: "537680", humId: "537681", svg: '<path d="M15,50v40h70V50l-10-10H25L15,50z M25,45V30h50v15h5V25l-10-10H30L20,25v20H25z"/>' },
+            { id: "small-bedroom",  name: "Small Bedroom",  tempId: "537674", humId: "537675", svg: '<path d="M20,60v30h60V60H20z M30,55V40h40v15h5V35l-10-10H35L25,35v20H30z"/>' },
+            { id: "hot-water",      name: "Hot Water",      tempId: "536155", humId: null, svg: '<path d="M20,70v20h60V70H20z M30,65V30c0-11,9-20,20-20s20,9,20,20v35H30z"/>' } 
         ];
 
         let feedHistory = {};
@@ -212,42 +200,51 @@
             const url = `https://corsproxy.io/?${encodeURIComponent(`https://emoncms.org/feed/fetch.json?ids=${ids.join(',')}&apikey=${API_KEY}`)}`;
 
             try {
-                const response = await fetch(fetchUrl); // Fixed reference to build URL inside try
+                const response = await fetch(url);
                 const dataArray = await response.json();
-                if (!dataArray) return;
+                if (!dataArray || !Array.isArray(dataArray)) {
+                    throw new Error("Invalid response");
+                }
                 const dataMap = {};
                 ids.forEach((id, index) => { dataMap[id] = parseFloat(dataArray[index]); });
 
                 rooms.forEach(room => {
                     const currentT = dataMap[room.tempId];
-                    if (currentT !== undefined) {
+                    if (currentT !== undefined && !isNaN(currentT)) {
                         if (!feedHistory[room.tempId]) feedHistory[room.tempId] = [];
                         const pastT = feedHistory[room.tempId][0];
                         feedHistory[room.tempId].push(currentT);
                         if (feedHistory[room.tempId].length > 5) feedHistory[room.tempId].shift();
+                        
                         document.getElementById(`t-val-${room.tempId}`).innerText = currentT.toFixed(1);
                         const tCont = document.getElementById(`t-container-${room.tempId}`);
                         const oldT = tCont.querySelector('.trend'); if (oldT) oldT.remove();
                         tCont.insertAdjacentHTML('beforeend', getTrendHTML(currentT, pastT, false));
+                        
                         const colorFn = room.name === "Hot Water" ? getWaterTempColor : getTempColor;
                         updateGauge(`t-arc-${room.tempId}`, currentT, room.name === "Hot Water" ? 15:10, room.name === "Hot Water" ? 75:35, colorFn);
                     }
-                    if (room.humId && dataMap[room.humId] !== undefined) {
+                    if (room.humId && dataMap[room.humId] !== undefined && !isNaN(dataMap[room.humId])) {
                         const currentH = dataMap[room.humId];
                         if (!feedHistory[room.humId]) feedHistory[room.humId] = [];
                         const pastH = feedHistory[room.humId][0];
                         feedHistory[room.humId].push(currentH);
                         if (feedHistory[room.humId].length > 5) feedHistory[room.humId].shift();
+                        
                         document.getElementById(`h-val-${room.humId}`).innerText = Math.round(currentH);
                         const hCont = document.getElementById(`h-container-${room.humId}`);
                         const oldH = hCont.querySelector('.trend'); if (oldH) oldH.remove();
                         hCont.insertAdjacentHTML('beforeend', getTrendHTML(currentH, pastH, true));
+                        
                         updateGauge(`h-arc-${room.humId}`, currentH, 0, 100, getHumColor);
                     }
                 });
                 lastSuccessTime = Date.now();
                 updateTimeAgo();
-            } catch (e) { document.getElementById('status').innerText = "Offline"; }
+            } catch (e) { 
+                console.error(e);
+                document.getElementById('status').innerText = "Offline/Error"; 
+            }
         }
 
         function updateTimeAgo() {
