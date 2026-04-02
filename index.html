@@ -32,72 +32,76 @@
             font-family: -apple-system, sans-serif; 
             background: var(--bg); 
             margin: 0; 
-            padding: 10px; 
+            padding: 15px; 
             color: var(--text); 
-            overflow: hidden; 
-            transition: background 0.3s ease;
+            min-height: 100vh;
         }
         
-        .container { display: grid; grid-template-columns: 1fr; gap: 8px; height: calc(100vh - 30px); }
+        .container { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
+            gap: 12px; 
+        }
         
         .card { 
             background: var(--card); 
-            padding: 12px 10px; 
-            border-radius: 20px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+            padding: 20px 15px; 
+            border-radius: 24px; 
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05); 
             text-align: center;
             display: flex; 
             flex-direction: column; 
-            justify-content: space-around;
-            transition: background 0.3s ease;
+            justify-content: space-between;
         }
 
-        .room-name { font-weight: 800; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; color: var(--subtext); }
-        .gauges-row { display: flex; justify-content: space-around; align-items: center; }
-        .gauge-box { position: relative; width: 46%; max-width: 140px; }
-        .gauge-box.full-width { width: 100%; max-width: 180px; margin: 0 auto; }
+        .room-name { font-weight: 800; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px; color: var(--subtext); }
+        .gauges-row { display: flex; justify-content: center; align-items: center; gap: 10px; }
+        .gauge-box { position: relative; width: 48%; max-width: 140px; }
+        .gauge-box.solo { width: 65%; max-width: 180px; }
         
         svg { width: 100%; height: auto; display: block; }
         
-        .gauge-progress { 
+        /* The Greyed Out Track */
+        .gauge-bg { 
             fill: none; 
-            stroke: var(--gauge-track);
+            stroke: var(--gauge-track); 
             stroke-width: 10; 
             stroke-linecap: round; 
+        }
+        
+        /* The Colored Progress Bar */
+        .gauge-progress { 
+            fill: none; 
+            stroke-width: 10; 
+            stroke-linecap: round; 
+            /* Circumference of a 180 degree arc with radius 35 is ~110 */
             stroke-dasharray: 110; 
             stroke-dashoffset: 110; 
             transition: stroke-dashoffset 1s ease-out, stroke 0.5s ease;
-            transform: rotate(0deg); 
-            transform-origin: 50% 50%;
         }
         
         .val-display { 
             position: absolute; 
             top: 50%; 
             left: 50%; 
-            transform: translate(-50%, -15%); 
+            transform: translate(-50%, 0%); 
             width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
         }
         
-        .num { font-size: 1.3rem; font-weight: 800; display: block; line-height: 1; color: var(--num-color); }
-        .unit { font-size: 0.5rem; color: var(--subtext); font-weight: 700; text-transform: uppercase; margin-top: 3px; }
+        .num { font-size: 1.5rem; font-weight: 800; display: block; color: var(--num-color); letter-spacing: -1px; line-height: 1; }
+        .unit { font-size: 0.55rem; color: var(--subtext); font-weight: 700; text-transform: uppercase; margin-top: 4px; }
 
-        #status { position: fixed; bottom: 4px; width: 100%; font-size: 0.5rem; text-align: right; color: var(--subtext); opacity: 0.6; }
+        #status { position: fixed; bottom: 10px; width: 100%; text-align: right; font-size: 0.6rem; color: var(--subtext); font-weight: 600; pointer-events: none; }
     </style>
 </head>
 <body>
 
     <div class="container" id="dashboard"></div>
-    <div id="status">Updating...</div>
+    <div id="status">Syncing...</div>
 
     <script>
         const API_KEY = "256cd79c98126a993e5b48790285f0cc";
         
-        // --- CONFIGURATION ---
-        // Replace "YOUR_ID" with your actual Emoncms Feed ID for the cylinder
         const rooms = [
             { name: "Living Room",   tempId: "537676", humId: "537677" },
             { name: "Big Bedroom",    tempId: "537680", humId: "537681" },
@@ -110,8 +114,9 @@
                 <div class="card">
                     <span class="room-name">${room.name}</span>
                     <div class="gauges-row">
-                        <div class="gauge-box ${!room.humId ? 'full-width' : ''}">
-                            <svg viewBox="0 0 100 100">
+                        <div class="gauge-box ${!room.humId ? 'solo' : ''}">
+                            <svg viewBox="0 0 100 70">
+                                <path class="gauge-bg" d="M 15 50 A 35 35 0 0 1 85 50" />
                                 <path class="gauge-progress" id="t-arc-${room.tempId}" d="M 15 50 A 35 35 0 0 1 85 50" />
                             </svg>
                             <div class="val-display">
@@ -119,9 +124,11 @@
                                 <span class="unit">Temp °C</span>
                             </div>
                         </div>
+                        
                         ${room.humId ? `
                         <div class="gauge-box">
-                            <svg viewBox="0 0 100 100">
+                            <svg viewBox="0 0 100 70">
+                                <path class="gauge-bg" d="M 15 50 A 35 35 0 0 1 85 50" />
                                 <path class="gauge-progress" id="h-arc-${room.humId}" d="M 15 50 A 35 35 0 0 1 85 50" />
                             </svg>
                             <div class="val-display">
@@ -142,10 +149,10 @@
         }
 
         function getWaterTempColor(t) {
-            if (t < 40) return '#2196f3'; // Cold
-            if (t <= 55) return '#4caf50'; // Ideal
-            if (t <= 65) return '#ff9800'; // Hot
-            return '#f44336'; // Very Hot
+            if (t < 40) return '#2196f3';
+            if (t <= 55) return '#4caf50';
+            if (t <= 65) return '#ff9800';
+            return '#f44336';
         }
 
         function getHumColor(h) {
@@ -159,13 +166,14 @@
             if(!el) return;
             const clamped = Math.min(Math.max(val, min), max);
             const percent = (clamped - min) / (max - min);
+            
+            // 110 is the total length of our half-circle path
             const offset = 110 - (percent * 110); 
             el.style.strokeDashoffset = offset;
             el.style.stroke = colorFn(val);
         }
 
         async function updateData() {
-            // Fetch all non-null IDs
             const feedIds = rooms.flatMap(r => [r.tempId, r.humId]).filter(id => id !== null);
             const url = `https://corsproxy.io/?${encodeURIComponent(`https://emoncms.org/feed/fetch.json?ids=${feedIds.join(',')}&apikey=${API_KEY}`)}`;
 
@@ -174,27 +182,23 @@
                 const dataArray = await response.json();
                 if (!dataArray) return;
 
-                // Create a map of ID -> Value for easier lookup
                 const dataMap = {};
-                feedIds.forEach((id, index) => {
-                    dataMap[id] = dataArray[index];
-                });
+                feedIds.forEach((id, index) => { dataMap[id] = dataArray[index]; });
 
                 rooms.forEach(room => {
-                    // Update Temperature
+                    // Update Temp
                     const tRaw = dataMap[room.tempId];
                     if (tRaw !== undefined) {
                         const t = parseFloat(tRaw).toFixed(1);
                         document.getElementById(`t-val-${room.tempId}`).innerText = t;
-                        
                         if (room.name === "Hot Water") {
-                            updateGauge(`t-arc-${room.tempId}`, t, 10, 80, getWaterTempColor);
+                            updateGauge(`t-arc-${room.tempId}`, t, 15, 75, getWaterTempColor);
                         } else {
                             updateGauge(`t-arc-${room.tempId}`, t, 10, 35, getTempColor);
                         }
                     }
 
-                    // Update Humidity
+                    // Update Hum
                     if (room.humId && dataMap[room.humId] !== undefined) {
                         const h = Math.round(dataMap[room.humId]);
                         document.getElementById(`h-val-${room.humId}`).innerText = h;
@@ -202,9 +206,8 @@
                     }
                 });
                 
-                document.getElementById('status').innerText = "Sync: " + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+                document.getElementById('status').innerText = "Last Update: " + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
             } catch (e) { 
-                console.error(e);
                 document.getElementById('status').innerText = "Offline"; 
             }
         }
