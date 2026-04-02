@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -9,92 +9,29 @@
     <title>Climate Dashboard</title>
     <style>
         :root { 
-            --bg: #f4f7f9; 
-            --card: #ffffff; 
-            --text: #333; 
-            --subtext: #888;
-            --gauge-track: #eee;
-            --num-color: #222;
-            --up-color: #f44336;
-            --down-color: #2196f3;
+            --bg: #f4f7f9; --card: #ffffff; --text: #333; --subtext: #888;
+            --gauge-track: #eee; --num-color: #222; --up-color: #f44336; --down-color: #2196f3;
         }
-
         @media (prefers-color-scheme: dark) {
-            :root {
-                --bg: #121212;
-                --card: #1e1e1e;
-                --text: #e0e0e0;
-                --subtext: #999;
-                --gauge-track: #333;
-                --num-color: #ffffff;
-            }
+            :root { --bg: #121212; --card: #1e1e1e; --text: #e0e0e0; --subtext: #999; --gauge-track: #333; --num-color: #ffffff; }
         }
-
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-            background: var(--bg); 
-            margin: 0; 
-            padding: 15px; 
-            color: var(--text); 
-            min-height: 100vh;
-        }
-        
-        .container { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
-            gap: 12px; 
-        }
-        
-        .card { 
-            background: var(--card); 
-            padding: 20px 15px; 
-            border-radius: 24px; 
-            box-shadow: 0 8px 20px rgba(0,0,0,0.05); 
-            text-align: center;
-            display: flex; 
-            flex-direction: column; 
-            justify-content: space-between;
-        }
-
-        .room-name { font-weight: 800; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px; color: var(--subtext); }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; color: var(--text); min-height: 100vh; }
+        .container { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
+        .card { background: var(--card); padding: 20px 15px; border-radius: 24px; box-shadow: 0 8px 20px rgba(0,0,0,0.05); text-align: center; }
+        .room-name { font-weight: 800; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px; color: var(--subtext); display: block; }
         .gauges-row { display: flex; justify-content: center; align-items: center; gap: 10px; }
         .gauge-box { position: relative; width: 48%; max-width: 140px; }
         .gauge-box.solo { width: 65%; max-width: 180px; }
-        
         svg { width: 100%; height: auto; display: block; }
-        
-        .gauge-bg { 
-            fill: none; 
-            stroke: var(--gauge-track); 
-            stroke-width: 10; 
-            stroke-linecap: round; 
-        }
-        
-        .gauge-progress { 
-            fill: none; 
-            stroke-width: 10; 
-            stroke-linecap: round; 
-            stroke-dasharray: 110; 
-            stroke-dashoffset: 110; 
-            transition: stroke-dashoffset 1s ease-out, stroke 0.5s ease;
-        }
-        
-        .val-display { 
-            position: absolute; 
-            top: 52%; 
-            left: 50%; 
-            transform: translate(-50%, 0%); 
-            width: 100%;
-        }
-        
+        .gauge-bg { fill: none; stroke: var(--gauge-track); stroke-width: 10; stroke-linecap: round; }
+        .gauge-progress { fill: none; stroke-width: 10; stroke-linecap: round; stroke-dasharray: 110; stroke-dashoffset: 110; transition: stroke-dashoffset 1s ease-out, stroke 0.5s ease; }
+        .val-display { position: absolute; top: 52%; left: 50%; transform: translate(-50%, 0%); width: 100%; }
         .num { font-size: 1.5rem; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; color: var(--num-color); letter-spacing: -1px; line-height: 1; }
         .unit { font-size: 0.55rem; color: var(--subtext); font-weight: 700; text-transform: uppercase; margin-top: 4px; display: block; }
-
         .trend { font-size: 0.9rem; margin-left: 3px; font-weight: 900; }
         .trend.up { color: var(--up-color); }
         .trend.down { color: var(--down-color); }
         .trend.stable { color: var(--subtext); opacity: 0.3; }
-
         #status { position: fixed; bottom: 10px; width: 100%; text-align: center; font-size: 0.6rem; color: var(--subtext); font-weight: 600; pointer-events: none; }
     </style>
 </head>
@@ -105,16 +42,12 @@
 
     <script>
         const API_KEY = "256cd79c98126a993e5b48790285f0cc";
-        
         const rooms = [
             { name: "Living Room",   tempId: "537676", humId: "537677" },
             { name: "Big Bedroom",    tempId: "537680", humId: "537681" },
             { name: "Small Bedroom",  tempId: "537674", humId: "537675" },
             { name: "Hot Water",      tempId: "536155", humId: null } 
         ];
-
-        // History storage: stores up to 5 readings (5 mins at 60s intervals)
-        const history = {}; 
 
         function createCards() {
             document.getElementById('dashboard').innerHTML = rooms.map(room => `
@@ -127,13 +60,10 @@
                                 <path class="gauge-progress" id="t-arc-${room.tempId}" d="M 15 50 A 35 35 0 0 1 85 50" />
                             </svg>
                             <div class="val-display">
-                                <span class="num" id="t-container-${room.tempId}">
-                                    <span id="t-val-${room.tempId}">--</span>
-                                </span>
+                                <span class="num" id="t-container-${room.tempId}"><span id="t-val-${room.tempId}">--</span></span>
                                 <span class="unit">Temp °C</span>
                             </div>
                         </div>
-                        
                         ${room.humId ? `
                         <div class="gauge-box">
                             <svg viewBox="0 0 100 70">
@@ -150,46 +80,21 @@
             `).join('');
         }
 
-        function getTrendIcon(id, currentVal) {
-            if (!history[id]) history[id] = [];
-            
-            // Compare against the oldest value in our 5-minute window
-            const pastVal = history[id].length > 0 ? history[id][0] : null;
-            
-            history[id].push(currentVal);
-            
-            // At 60s intervals, 5 items = 5 minutes of history
-            if (history[id].length > 5) history[id].shift();
+        async function fetchFeedData(id) {
+            const now = Math.floor(Date.now() / 1000);
+            const fiveMinsAgo = now - 300;
+            // Fetch current value and value from 5 mins ago
+            const url = `https://corsproxy.io/?${encodeURIComponent(`https://emoncms.org/feed/data.json?id=${id}&start=${fiveMinsAgo * 1000}&end=${now * 1000}&interval=300&apikey=${API_KEY}`)}`;
+            const resp = await fetch(url);
+            return await resp.json(); 
+        }
 
-            if (pastVal === null) return '';
-
-            const diff = currentVal - pastVal;
-            const threshold = 0.05; 
-
+        function getTrendIcon(current, past) {
+            if (past === undefined || past === null) return '';
+            const diff = current - past;
+            const threshold = 0.05;
             if (Math.abs(diff) < threshold) return '<span class="trend stable">−</span>';
-            return diff > 0 
-                ? '<span class="trend up">▲</span>' 
-                : '<span class="trend down">▼</span>';
-        }
-
-        function getTempColor(t) {
-            if (t < 18) return '#2196f3';
-            if (t <= 24) return '#4caf50';
-            if (t <= 27) return '#ff9800';
-            return '#f44336';
-        }
-
-        function getWaterTempColor(t) {
-            if (t < 40) return '#2196f3';
-            if (t <= 55) return '#4caf50';
-            if (t <= 65) return '#ff9800';
-            return '#f44336';
-        }
-
-        function getHumColor(h) {
-            if (h < 40) return '#2196f3';
-            if (h <= 60) return '#4caf50';
-            return '#f44336';
+            return diff > 0 ? '<span class="trend up">▲</span>' : '<span class="trend down">▼</span>';
         }
 
         function updateGauge(elId, val, min, max, colorFn) {
@@ -197,63 +102,51 @@
             if(!el) return;
             const clamped = Math.min(Math.max(val, min), max);
             const percent = (clamped - min) / (max - min);
-            const offset = 110 - (percent * 110); 
-            el.style.strokeDashoffset = offset;
+            el.style.strokeDashoffset = 110 - (percent * 110);
             el.style.stroke = colorFn(val);
         }
 
+        const getTempColor = t => t < 18 ? '#2196f3' : t <= 24 ? '#4caf50' : t <= 27 ? '#ff9800' : '#f44336';
+        const getWaterTempColor = t => t < 40 ? '#2196f3' : t <= 55 ? '#4caf50' : t <= 65 ? '#ff9800' : '#f44336';
+        const getHumColor = h => h < 40 ? '#2196f3' : h <= 60 ? '#4caf50' : '#f44336';
+
         async function updateData() {
-            const feedIds = rooms.flatMap(r => [r.tempId, r.humId]).filter(id => id !== null);
-            const url = `https://corsproxy.io/?${encodeURIComponent(`https://emoncms.org/feed/fetch.json?ids=${feedIds.join(',')}&apikey=${API_KEY}`)}`;
-
             try {
-                const response = await fetch(url);
-                const dataArray = await response.json();
-                if (!dataArray) return;
-
-                const dataMap = {};
-                feedIds.forEach((id, index) => { dataMap[id] = dataArray[index]; });
-
-                rooms.forEach(room => {
-                    const tRaw = dataMap[room.tempId];
-                    if (tRaw !== undefined) {
-                        const t = parseFloat(tRaw);
-                        const trend = getTrendIcon(room.tempId, t);
+                for (const room of rooms) {
+                    // Temperature Trend Logic
+                    const tData = await fetchFeedData(room.tempId);
+                    if (tData && tData.length >= 1) {
+                        const currentT = tData[tData.length - 1][1];
+                        const pastT = tData[0][1];
                         
-                        document.getElementById(`t-val-${room.tempId}`).innerText = t.toFixed(1);
-                        
+                        document.getElementById(`t-val-${room.tempId}`).innerText = currentT.toFixed(1);
                         const container = document.getElementById(`t-container-${room.tempId}`);
-                        const existingTrend = container.querySelector('.trend');
-                        if (existingTrend) existingTrend.remove();
-                        container.insertAdjacentHTML('beforeend', trend);
+                        const oldTrend = container.querySelector('.trend');
+                        if (oldTrend) oldTrend.remove();
+                        container.insertAdjacentHTML('beforeend', getTrendIcon(currentT, pastT));
 
-                        if (room.name === "Hot Water") {
-                            updateGauge(`t-arc-${room.tempId}`, t, 15, 75, getWaterTempColor);
-                        } else {
-                            updateGauge(`t-arc-${room.tempId}`, t, 10, 35, getTempColor);
-                        }
+                        const colorFn = room.name === "Hot Water" ? getWaterTempColor : getTempColor;
+                        const range = room.name === "Hot Water" ? [15, 75] : [10, 35];
+                        updateGauge(`t-arc-${room.tempId}`, currentT, range[0], range[1], colorFn);
                     }
 
-                    if (room.humId && dataMap[room.humId] !== undefined) {
-                        const h = Math.round(dataMap[room.humId]);
+                    // Humidity (No trend needed for hum, keeping it simple)
+                    if (room.humId) {
+                        const hUrl = `https://corsproxy.io/?${encodeURIComponent(`https://emoncms.org/feed/value.json?id=${room.humId}&apikey=${API_KEY}`)}`;
+                        const hResp = await fetch(hUrl);
+                        const hVal = await hResp.json();
+                        const h = Math.round(parseFloat(hVal));
                         document.getElementById(`h-val-${room.humId}`).innerText = h;
                         updateGauge(`h-arc-${room.humId}`, h, 0, 100, getHumColor);
                     }
-                });
-                
+                }
                 document.getElementById('status').innerText = "Last Update: " + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-            } catch (e) { 
-                document.getElementById('status').innerText = "Offline"; 
-            }
+            } catch (e) { document.getElementById('status').innerText = "Offline"; }
         }
 
         createCards();
         updateData();
-        
-        // Updated to 60000ms (60 seconds)
-        setInterval(updateData, 60000); 
-        
-        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
+        setInterval(updateData, 60000);
     </script>
 </body>
 </html>
