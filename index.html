@@ -3,219 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Energy Readings</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#121212">
-    <title>Climate Dashboard</title>
     <style>
-        :root { 
-            --bg: #f4f7f9; 
-            --card: #ffffff; 
-            --text: #333; 
-            --subtext: #888;
-            --gauge-track: #eee;
-            --num-color: #222;
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-main: #ffffff;
+            --text-dim: #888888;
+            --accent: #00d1b2;
         }
 
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg: #121212;
-                --card: #1e1e1e;
-                --text: #e0e0e0;
-                --subtext: #999;
-                --gauge-track: #333;
-                --num-color: #ffffff;
-            }
-        }
-
-        body { 
-            font-family: -apple-system, sans-serif; 
-            background: var(--bg); 
-            margin: 0; 
-            padding: 15px; 
-            color: var(--text); 
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             min-height: 100vh;
+            user-select: none;
+            overscroll-behavior-y: contain;
         }
-        
-        .container { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
-            gap: 12px; 
-        }
-        
-        .card { 
-            background: var(--card); 
-            padding: 20px 15px; 
-            border-radius: 24px; 
-            box-shadow: 0 8px 20px rgba(0,0,0,0.05); 
+
+        #dashboard {
+            width: 90%;
+            max-width: 400px;
             text-align: center;
-            display: flex; 
-            flex-direction: column; 
-            justify-content: space-between;
         }
 
-        .room-name { font-weight: 800; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px; color: var(--subtext); }
-        .gauges-row { display: flex; justify-content: center; align-items: center; gap: 10px; }
-        .gauge-box { position: relative; width: 48%; max-width: 140px; }
-        .gauge-box.solo { width: 65%; max-width: 180px; }
-        
-        svg { width: 100%; height: auto; display: block; }
-        
-        /* The Greyed Out Track */
-        .gauge-bg { 
-            fill: none; 
-            stroke: var(--gauge-track); 
-            stroke-width: 10; 
-            stroke-linecap: round; 
+        .gauge-container {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            margin-bottom: 1.5rem;
         }
-        
-        /* The Colored Progress Bar */
-        .gauge-progress { 
-            fill: none; 
-            stroke-width: 10; 
-            stroke-linecap: round; 
-            /* Circumference of a 180 degree arc with radius 35 is ~110 */
-            stroke-dasharray: 110; 
-            stroke-dashoffset: 110; 
-            transition: stroke-dashoffset 1s ease-out, stroke 0.5s ease;
-        }
-        
-        .val-display { 
-            position: absolute; 
-            top: 50%; 
-            left: 50%; 
-            transform: translate(-50%, 0%); 
-            width: 100%;
-        }
-        
-        .num { font-size: 1.5rem; font-weight: 800; display: block; color: var(--num-color); letter-spacing: -1px; line-height: 1; }
-        .unit { font-size: 0.55rem; color: var(--subtext); font-weight: 700; text-transform: uppercase; margin-top: 4px; }
 
-        #status { position: fixed; bottom: 10px; width: 100%; text-align: center; font-size: 0.6rem; color: var(--subtext); font-weight: 600; pointer-events: none; }
+        #last-sync-info {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            text-align: center; /* Back to center as requested */
+            margin-top: 20px;    /* Breathing room from the gauge */
+            transition: opacity 0.3s ease;
+        }
+
+        /* Offline State */
+        body.is-offline #last-sync-info {
+            color: #ff3860;
+        }
+
+        .unit {
+            font-size: 1.2rem;
+            color: var(--text-dim);
+            margin-left: 4px;
+        }
+
+        /* Subtle pulse for when data is fetching */
+        .fetching {
+            opacity: 0.5;
+        }
     </style>
 </head>
 <body>
 
-    <div class="container" id="dashboard"></div>
-    <div id="status">Syncing...</div>
+    <div id="dashboard">
+        <div class="gauge-container">
+            <div id="main-reading" style="font-size: 3rem; font-weight: bold;">--</div>
+            <span class="unit">Watts</span>
+        </div>
+
+        <div id="last-sync-info">Initializing...</div>
+    </div>
 
     <script>
-        const API_KEY = "256cd79c98126a993e5b48790285f0cc";
-        
-        const rooms = [
-            { name: "Living Room",   tempId: "537676", humId: "537677" },
-            { name: "Big Bedroom",    tempId: "537680", humId: "537681" },
-            { name: "Small Bedroom",  tempId: "537674", humId: "537675" },
-            { name: "Hot Water",      tempId: "536155", humId: null } 
-        ];
+        const config = {
+            apiKey: localStorage.getItem('emon_apikey'),
+            feedId: localStorage.getItem('power_feed_id'),
+            interval: 5000
+        };
 
-        function createCards() {
-            document.getElementById('dashboard').innerHTML = rooms.map(room => `
-                <div class="card">
-                    <span class="room-name">${room.name}</span>
-                    <div class="gauges-row">
-                        <div class="gauge-box ${!room.humId ? 'solo' : ''}">
-                            <svg viewBox="0 0 100 70">
-                                <path class="gauge-bg" d="M 15 50 A 35 35 0 0 1 85 50" />
-                                <path class="gauge-progress" id="t-arc-${room.tempId}" d="M 15 50 A 35 35 0 0 1 85 50" />
-                            </svg>
-                            <div class="val-display">
-                                <span class="num" id="t-val-${room.tempId}">--</span>
-                                <span class="unit">Temp °C</span>
-                            </div>
-                        </div>
-                        
-                        ${room.humId ? `
-                        <div class="gauge-box">
-                            <svg viewBox="0 0 100 70">
-                                <path class="gauge-bg" d="M 15 50 A 35 35 0 0 1 85 50" />
-                                <path class="gauge-progress" id="h-arc-${room.humId}" d="M 15 50 A 35 35 0 0 1 85 50" />
-                            </svg>
-                            <div class="val-display">
-                                <span class="num" id="h-val-${room.humId}">--</span>
-                                <span class="unit">Hum %</span>
-                            </div>
-                        </div>` : ''}
-                    </div>
-                </div>
-            `).join('');
-        }
+        const syncElement = document.getElementById('last-sync-info');
+        const valueElement = document.getElementById('main-reading');
+        let updateTimer;
 
-        function getTempColor(t) {
-            if (t < 18) return '#2196f3';
-            if (t <= 24) return '#4caf50';
-            if (t <= 27) return '#ff9800';
-            return '#f44336';
-        }
+        async function fetchData() {
+            if (!config.apiKey || !config.feedId) {
+                syncElement.innerText = "Check Settings: Missing API Key/Feed ID";
+                return;
+            }
 
-        function getWaterTempColor(t) {
-            if (t < 40) return '#2196f3';
-            if (t <= 55) return '#4caf50';
-            if (t <= 65) return '#ff9800';
-            return '#f44336';
-        }
-
-        function getHumColor(h) {
-            if (h < 40) return '#2196f3';
-            if (h <= 60) return '#4caf50';
-            return '#f44336';
-        }
-
-        function updateGauge(elId, val, min, max, colorFn) {
-            const el = document.getElementById(elId);
-            if(!el) return;
-            const clamped = Math.min(Math.max(val, min), max);
-            const percent = (clamped - min) / (max - min);
-            
-            // 110 is the total length of our half-circle path
-            const offset = 110 - (percent * 110); 
-            el.style.strokeDashoffset = offset;
-            el.style.stroke = colorFn(val);
-        }
-
-        async function updateData() {
-            const feedIds = rooms.flatMap(r => [r.tempId, r.humId]).filter(id => id !== null);
-            const url = `https://corsproxy.io/?${encodeURIComponent(`https://emoncms.org/feed/fetch.json?ids=${feedIds.join(',')}&apikey=${API_KEY}`)}`;
+            syncElement.classList.add('fetching');
 
             try {
-                const response = await fetch(url);
-                const dataArray = await response.json();
-                if (!dataArray) return;
-
-                const dataMap = {};
-                feedIds.forEach((id, index) => { dataMap[id] = dataArray[index]; });
-
-                rooms.forEach(room => {
-                    // Update Temp
-                    const tRaw = dataMap[room.tempId];
-                    if (tRaw !== undefined) {
-                        const t = parseFloat(tRaw).toFixed(1);
-                        document.getElementById(`t-val-${room.tempId}`).innerText = t;
-                        if (room.name === "Hot Water") {
-                            updateGauge(`t-arc-${room.tempId}`, t, 15, 75, getWaterTempColor);
-                        } else {
-                            updateGauge(`t-arc-${room.tempId}`, t, 10, 35, getTempColor);
-                        }
-                    }
-
-                    // Update Hum
-                    if (room.humId && dataMap[room.humId] !== undefined) {
-                        const h = Math.round(dataMap[room.humId]);
-                        document.getElementById(`h-val-${room.humId}`).innerText = h;
-                        updateGauge(`h-arc-${room.humId}`, h, 0, 100, getHumColor);
-                    }
-                });
+                const response = await fetch(`https://emoncms.org/feed/value.json?id=${config.feedId}&apikey=${config.apiKey}`);
+                const value = await response.json();
                 
-                document.getElementById('status').innerText = "Last Update: " + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-            } catch (e) { 
-                document.getElementById('status').innerText = "Offline"; 
+                // Update UI
+                valueElement.innerText = Math.round(value);
+                const now = new Date();
+                syncElement.innerText = `Last sync: ${now.toLocaleTimeString()}`;
+            } catch (error) {
+                syncElement.innerText = "Sync Failed (Network Error)";
+            } finally {
+                syncElement.classList.remove('fetching');
             }
         }
 
-        createCards();
-        updateData();
-        setInterval(updateData, 30000);
-        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
+        // Visibility Logic: Stop fetching if user leaves the app
+        function handleVisibilityChange() {
+            if (document.hidden) {
+                clearInterval(updateTimer);
+            } else {
+                fetchData();
+                updateTimer = setInterval(fetchData, config.interval);
+            }
+        }
+
+        // Online/Offline Status
+        window.addEventListener('online', () => {
+            document.body.classList.remove('is-offline');
+            fetchData();
+        });
+        window.addEventListener('offline', () => {
+            document.body.classList.add('is-offline');
+            syncElement.innerText = "Offline - Check Connection";
+        });
+
+        // Initialize
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        updateTimer = setInterval(fetchData, config.interval);
+        fetchData();
+
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
     </script>
 </body>
 </html>
