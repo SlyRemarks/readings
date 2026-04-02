@@ -52,17 +52,17 @@
         .room-small-bedroom { --card-color: #e67e22; }
         .room-hot-water { --card-color: #c0392b; }
 
-        /* Large Vector Illustration Layer */
+        /* Large Vector Illustration Layer - Moved to Top Right */
         .card-illustration {
             position: absolute;
-            bottom: -25px;
-            right: -20px;
-            width: 150px;
-            height: 150px;
+            top: -20px;      /* Slightly cropped off the top */
+            right: -25px;    /* Slightly cropped off the right */
+            width: 140px;
+            height: 140px;
             opacity: 0.12;
             pointer-events: none;
             fill: #fff;
-            transform: rotate(-12deg);
+            transform: rotate(15deg); /* Adjusted rotation for top-right placement */
             z-index: 1;
         }
 
@@ -131,19 +131,19 @@
         const rooms = [
             { 
                 id: "living-room",   name: "Living Room",   tempId: "537676", humId: "537677", 
-                svg: '<path d="M10,85h80v5H10V85z M20,80h10V40H20V80z M70,80h10V40H70V80z M30,40h40v5H30V40z M35,80c0-10,5-15,15-25c10,10,15,15,15,25H35z M45,80c0-5,2-8,5-12c3,4,5,7,5,12H45z"/>' // Fireplace
+                svg: '<path d="M10,85h80v5H10V85z M20,80h10V40H20V80z M70,80h10V40H70V80z M30,40h40v5H30V40z M35,80c0-10,5-15,15-25c10,10,15,15,15,25H35z M45,80c0-5,2-8,5-12c3,4,5,7,5,12H45z"/>' 
             },
             { 
                 id: "big-bedroom",    name: "Big Bedroom",    tempId: "537680", humId: "537681", 
-                svg: '<path d="M15,50v40h70V50l-10-10H25L15,50z M25,45V30h50v15h5V25l-10-10H30L20,25v20H25z"/>' // Bed
+                svg: '<path d="M15,50v40h70V50l-10-10H25L15,50z M25,45V30h50v15h5V25l-10-10H30L20,25v20H25z"/>' 
             },
             { 
                 id: "small-bedroom",  name: "Small Bedroom",  tempId: "537674", humId: "537675", 
-                svg: '<path d="M20,60v30h60V60H20z M30,55V40h40v15h5V35l-10-10H35L25,35v20H30z"/>' // Small Bed
+                svg: '<path d="M20,60v30h60V60H20z M30,55V40h40v15h5V35l-10-10H35L25,35v20H30z"/>' 
             },
             { 
                 id: "hot-water",      name: "Hot Water",      tempId: "536155", humId: null, 
-                svg: '<path d="M20,70v20h60V70H20z M30,65V30c0-11,9-20,20-20s20,9,20,20v35H30z"/>' // Tank
+                svg: '<path d="M20,70v20h60V70H20z M30,65V30c0-11,9-20,20-20s20,9,20,20v35H30z"/>' 
             } 
         ];
 
