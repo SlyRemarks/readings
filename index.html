@@ -6,7 +6,7 @@
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#121212">
-    <title>Readings</title>
+    <title>Climate Dashboard</title>
     <style>
         :root { 
             --bg: #121212; --card-default: #1e1e1e; 
@@ -37,7 +37,7 @@
             position: relative;
             background-color: var(--card-color, var(--card-default));
             background-image: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.3) 100%);
-            padding: 30px 20px; 
+            padding: 35px 20px; 
             border-radius: 32px; 
             box-shadow: 0 12px 30px rgba(0,0,0,0.4); 
             text-align: center; 
@@ -52,17 +52,17 @@
         .room-small-bedroom { --card-color: #e67e22; }
         .room-hot-water { --card-color: #c0392b; }
 
-        /* Large Vector Illustration Layer - Moved to Top Left & Higher */
+        /* Stretched "Ghost" Watermark Layer */
         .card-illustration {
             position: absolute;
-            top: -35px;      /* Tucked further up */
-            left: -25px;     /* Moved to left */
-            width: 145px;
-            height: 145px;
-            opacity: 0.12;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-5deg);
+            width: 90%;       /* Stretches across most of the card */
+            height: auto;
+            opacity: 0.05;    /* Very faint for subtle texture */
             pointer-events: none;
             fill: #fff;
-            transform: rotate(-15deg); /* Counter-rotation for top-left */
             z-index: 1;
         }
 
@@ -70,12 +70,13 @@
 
         .room-name { 
             font-weight: 800; 
-            font-size: 0.8rem; 
+            font-size: 0.85rem; 
             text-transform: uppercase; 
-            letter-spacing: 2.5px; 
+            letter-spacing: 3px; 
             margin-bottom: 25px; 
-            color: var(--subtext-card); 
+            color: var(--text-card); 
             display: block; 
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
 
         .gauges-row { 
@@ -94,7 +95,7 @@
         
         .val-display { position: absolute; top: 52%; left: 50%; transform: translate(-50%, 0%); width: 100%; }
         
-        .num { font-size: 1.8rem; font-weight: 800; color: #fff; letter-spacing: -1px; line-height: 1; text-shadow: 0 1px 4px rgba(0,0,0,0.4); }
+        .num { font-size: 1.8rem; font-weight: 800; color: #fff; letter-spacing: -1px; line-height: 1; text-shadow: 0 1px 10px rgba(0,0,0,0.5); }
         .unit { font-size: 0.6rem; color: var(--subtext-card); font-weight: 700; text-transform: uppercase; margin-top: 5px; display: block; }
         
         .trend { font-size: 0.9rem; margin-left: 4px; font-weight: 900; }
@@ -107,14 +108,14 @@
         #status { 
             position: fixed; 
             bottom: 0; left: 0; right: 0; 
-            padding: 20px 0; 
+            padding: 22px 0; 
             text-align: center; 
             font-size: 0.65rem; 
             color: var(--subtext-card); 
             font-weight: 700; 
             text-transform: uppercase; 
             letter-spacing: 1.5px; 
-            background: linear-gradient(to top, var(--bg) 60%, transparent);
+            background: linear-gradient(to top, var(--bg) 70%, transparent);
             pointer-events: none;
             z-index: 10;
         }
@@ -211,7 +212,7 @@
             const url = `https://corsproxy.io/?${encodeURIComponent(`https://emoncms.org/feed/fetch.json?ids=${ids.join(',')}&apikey=${API_KEY}`)}`;
 
             try {
-                const response = await fetch(url);
+                const response = await fetch(fetchUrl); // Fixed reference to build URL inside try
                 const dataArray = await response.json();
                 if (!dataArray) return;
                 const dataMap = {};
