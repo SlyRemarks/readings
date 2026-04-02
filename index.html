@@ -21,15 +21,15 @@
             background: var(--bg); 
             margin: 0; 
             padding: 15px; 
-            padding-bottom: 80px; 
+            padding-bottom: 85px; 
             min-height: 100vh; 
             box-sizing: border-box; 
-            overflow-y: auto; /* Re-enable scrolling */
+            overflow-y: auto; 
         }
 
         .container { 
             display: grid; 
-            grid-template-columns: 1fr; /* Full width cards */
+            grid-template-columns: 1fr; 
             gap: 15px; 
         }
         
@@ -52,7 +52,7 @@
         .room-small-bedroom { --card-color: #e67e22; }
         .room-hot-water { --card-color: #c0392b; }
 
-        /* Large Vector Illustration */
+        /* Large Vector Illustration Layer */
         .card-illustration {
             position: absolute;
             bottom: -25px;
@@ -62,7 +62,7 @@
             opacity: 0.12;
             pointer-events: none;
             fill: #fff;
-            transform: rotate(-15deg);
+            transform: rotate(-12deg);
             z-index: 1;
         }
 
@@ -116,6 +116,7 @@
             letter-spacing: 1.5px; 
             background: linear-gradient(to top, var(--bg) 60%, transparent);
             pointer-events: none;
+            z-index: 10;
         }
     </style>
 </head>
@@ -126,11 +127,24 @@
 
     <script>
         const API_KEY = "256cd79c98126a993e5b48790285f0cc";
+        
         const rooms = [
-            { id: "living-room",   name: "Living Room",   tempId: "537676", humId: "537677", svg: '<path d="M10,65v25h15V75h50v15h15V65H10z M20,60V40h60v20h5V30l-10-10H25l-10,10v30H20z"/>' },
-            { id: "big-bedroom",    name: "Big Bedroom",    tempId: "537680", humId: "537681", svg: '<path d="M15,50v40h70V50l-10-10H25L15,50z M25,45V30h50v15h5V25l-10-10H30L20,25v20H25z"/>' },
-            { id: "small-bedroom",  name: "Small Bedroom",  tempId: "537674", humId: "537675", svg: '<path d="M20,60v30h60V60H20z M30,55V40h40v15h5V35l-10-10H35L25,35v20H30z"/>' },
-            { id: "hot-water",      name: "Hot Water",      tempId: "536155", humId: null, svg: '<path d="M20,70v20h60V70H20z M30,65V30c0-11,9-20,20-20s20,9,20,20v35H30z"/>' } 
+            { 
+                id: "living-room",   name: "Living Room",   tempId: "537676", humId: "537677", 
+                svg: '<path d="M10,85h80v5H10V85z M20,80h10V40H20V80z M70,80h10V40H70V80z M30,40h40v5H30V40z M35,80c0-10,5-15,15-25c10,10,15,15,15,25H35z M45,80c0-5,2-8,5-12c3,4,5,7,5,12H45z"/>' // Fireplace
+            },
+            { 
+                id: "big-bedroom",    name: "Big Bedroom",    tempId: "537680", humId: "537681", 
+                svg: '<path d="M15,50v40h70V50l-10-10H25L15,50z M25,45V30h50v15h5V25l-10-10H30L20,25v20H25z"/>' // Bed
+            },
+            { 
+                id: "small-bedroom",  name: "Small Bedroom",  tempId: "537674", humId: "537675", 
+                svg: '<path d="M20,60v30h60V60H20z M30,55V40h40v15h5V35l-10-10H35L25,35v20H30z"/>' // Small Bed
+            },
+            { 
+                id: "hot-water",      name: "Hot Water",      tempId: "536155", humId: null, 
+                svg: '<path d="M20,70v20h60V70H20z M30,65V30c0-11,9-20,20-20s20,9,20,20v35H30z"/>' // Tank
+            } 
         ];
 
         let feedHistory = {};
