@@ -52,17 +52,17 @@
         .room-small-bedroom { --card-color: #e67e22; }
         .room-hot-water { --card-color: #c0392b; }
 
-        /* Large Vector Illustration Layer - Moved to Top Right */
+        /* Large Vector Illustration Layer - Moved to Top Left & Higher */
         .card-illustration {
             position: absolute;
-            top: -20px;      /* Slightly cropped off the top */
-            right: -25px;    /* Slightly cropped off the right */
-            width: 140px;
-            height: 140px;
+            top: -35px;      /* Tucked further up */
+            left: -25px;     /* Moved to left */
+            width: 145px;
+            height: 145px;
             opacity: 0.12;
             pointer-events: none;
             fill: #fff;
-            transform: rotate(15deg); /* Adjusted rotation for top-right placement */
+            transform: rotate(-15deg); /* Counter-rotation for top-left */
             z-index: 1;
         }
 
@@ -72,7 +72,7 @@
             font-weight: 800; 
             font-size: 0.8rem; 
             text-transform: uppercase; 
-            letter-spacing: 2px; 
+            letter-spacing: 2.5px; 
             margin-bottom: 25px; 
             color: var(--subtext-card); 
             display: block; 
