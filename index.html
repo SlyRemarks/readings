@@ -11,6 +11,7 @@
         :root { 
             --bg: #f4f7f9; --card: #ffffff; --text: #333; --subtext: #888;
             --gauge-track: #eee; --num-color: #222; --up-color: #f44336; --down-color: #2196f3;
+            --hum-up: #2196f3; --hum-down: #ff9800;
         }
         @media (prefers-color-scheme: dark) {
             :root { --bg: #121212; --card: #1e1e1e; --text: #e0e0e0; --subtext: #999; --gauge-track: #333; --num-color: #ffffff; }
@@ -28,10 +29,15 @@
         .val-display { position: absolute; top: 52%; left: 50%; transform: translate(-50%, 0%); width: 100%; }
         .num { font-size: 1.5rem; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; color: var(--num-color); letter-spacing: -1px; line-height: 1; }
         .unit { font-size: 0.55rem; color: var(--subtext); font-weight: 700; text-transform: uppercase; margin-top: 4px; display: block; }
+        
+        /* Trend Styles */
         .trend { font-size: 0.9rem; margin-left: 3px; font-weight: 900; }
         .trend.up { color: var(--up-color); }
         .trend.down { color: var(--down-color); }
+        .trend.h-up { color: var(--hum-up); }   /* Blue for rising humidity */
+        .trend.h-down { color: var(--hum-down); } /* Orange for falling humidity */
         .trend.stable { color: var(--subtext); opacity: 0.3; }
+
         #status { position: fixed; bottom: 10px; width: 100%; text-align: center; font-size: 0.6rem; color: var(--subtext); font-weight: 600; pointer-events: none; }
     </style>
 </head>
@@ -49,7 +55,6 @@
             { name: "Hot Water",      tempId: "536155", humId: null } 
         ];
 
-        // Store history locally to compare current vs past
         let feedHistory = {};
 
         function createCards() {
@@ -74,7 +79,7 @@
                                 <path class="gauge-progress" id="h-arc-${room.humId}" d="M 15 50 A 35 35 0 0 1 85 50" />
                             </svg>
                             <div class="val-display">
-                                <span class="num" id="h-val-${room.humId}">--</span>
+                                <span class="num" id="h-container-${room.humId}"><span id="h-val-${room.humId}">--</span></span>
                                 <span class="unit">Hum %</span>
                             </div>
                         </div>` : ''}
@@ -96,6 +101,19 @@
             el.style.stroke = colorFn(val);
         }
 
+        function getTrendHTML(current, past, isHumidity = false) {
+            if (past === undefined) return '';
+            const diff = current - past;
+            const threshold = isHumidity ? 0.5 : 0.05; // Humidity needs a larger threshold
+            
+            if (Math.abs(diff) < threshold) return '<span class="trend stable">−</span>';
+            
+            if (isHumidity) {
+                return diff > 0 ? '<span class="trend h-up">▲</span>' : '<span class="trend h-down">▼</span>';
+            }
+            return diff > 0 ? '<span class="trend up">▲</span>' : '<span class="trend down">▼</span>';
+        }
+
         async function updateData() {
             const ids = rooms.flatMap(r => [r.tempId, r.humId]).filter(id => id !== null);
             const url = `https://corsproxy.io/?${encodeURIComponent(`https://emoncms.org/feed/fetch.json?ids=${ids.join(',')}&apikey=${API_KEY}`)}`;
@@ -109,47 +127,44 @@
                 ids.forEach((id, index) => { dataMap[id] = parseFloat(dataArray[index]); });
 
                 rooms.forEach(room => {
+                    // PROCESS TEMPERATURE
                     const currentT = dataMap[room.tempId];
                     if (currentT !== undefined) {
-                        // Trend Logic: Compare current against stored value from 5 mins ago
                         if (!feedHistory[room.tempId]) feedHistory[room.tempId] = [];
-                        const pastT = feedHistory[room.tempId][0]; // Oldest in our 5-min window
-                        
+                        const pastT = feedHistory[room.tempId][0];
                         feedHistory[room.tempId].push(currentT);
                         if (feedHistory[room.tempId].length > 5) feedHistory[room.tempId].shift();
 
-                        // Update Text
                         document.getElementById(`t-val-${room.tempId}`).innerText = currentT.toFixed(1);
-                        
-                        // Update Arrow
-                        const container = document.getElementById(`t-container-${room.tempId}`);
-                        const oldTrend = container.querySelector('.trend');
-                        if (oldTrend) oldTrend.remove();
-                        
-                        if (pastT !== undefined) {
-                            const diff = currentT - pastT;
-                            const icon = Math.abs(diff) < 0.05 ? '<span class="trend stable">−</span>' : 
-                                         diff > 0 ? '<span class="trend up">▲</span>' : '<span class="trend down">▼</span>';
-                            container.insertAdjacentHTML('beforeend', icon);
-                        }
+                        const tCont = document.getElementById(`t-container-${room.tempId}`);
+                        const oldT = tCont.querySelector('.trend'); if (oldT) oldT.remove();
+                        tCont.insertAdjacentHTML('beforeend', getTrendHTML(currentT, pastT, false));
 
-                        // Update Gauge
                         const colorFn = room.name === "Hot Water" ? getWaterTempColor : getTempColor;
                         const range = room.name === "Hot Water" ? [15, 75] : [10, 35];
                         updateGauge(`t-arc-${room.tempId}`, currentT, range[0], range[1], colorFn);
                     }
 
+                    // PROCESS HUMIDITY
                     if (room.humId && dataMap[room.humId] !== undefined) {
-                        const h = Math.round(dataMap[room.humId]);
-                        document.getElementById(`h-val-${room.humId}`).innerText = h;
-                        updateGauge(`h-arc-${room.humId}`, h, 0, 100, getHumColor);
+                        const currentH = dataMap[room.humId];
+                        if (!feedHistory[room.humId]) feedHistory[room.humId] = [];
+                        const pastH = feedHistory[room.humId][0];
+                        feedHistory[room.humId].push(currentH);
+                        if (feedHistory[room.humId].length > 5) feedHistory[room.humId].shift();
+
+                        const hDisplay = Math.round(currentH);
+                        document.getElementById(`h-val-${room.humId}`).innerText = hDisplay;
+                        const hCont = document.getElementById(`h-container-${room.humId}`);
+                        const oldH = hCont.querySelector('.trend'); if (oldH) oldH.remove();
+                        hCont.insertAdjacentHTML('beforeend', getTrendHTML(currentH, pastH, true));
+
+                        updateGauge(`h-arc-${room.humId}`, currentH, 0, 100, getHumColor);
                     }
                 });
                 
                 document.getElementById('status').innerText = "Last Update: " + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-            } catch (e) { 
-                document.getElementById('status').innerText = "Offline - Check Connection"; 
-            }
+            } catch (e) { document.getElementById('status').innerText = "Offline"; }
         }
 
         createCards();
