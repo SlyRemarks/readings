@@ -15,6 +15,8 @@
             --subtext: #888;
             --gauge-track: #eee;
             --num-color: #222;
+            --up-color: #f44336;
+            --down-color: #2196f3;
         }
 
         @media (prefers-color-scheme: dark) {
@@ -29,7 +31,7 @@
         }
 
         body { 
-            font-family: -apple-system, sans-serif; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
             background: var(--bg); 
             margin: 0; 
             padding: 15px; 
@@ -61,7 +63,6 @@
         
         svg { width: 100%; height: auto; display: block; }
         
-        /* The Greyed Out Track */
         .gauge-bg { 
             fill: none; 
             stroke: var(--gauge-track); 
@@ -69,12 +70,10 @@
             stroke-linecap: round; 
         }
         
-        /* The Colored Progress Bar */
         .gauge-progress { 
             fill: none; 
             stroke-width: 10; 
             stroke-linecap: round; 
-            /* Circumference of a 180 degree arc with radius 35 is ~110 */
             stroke-dasharray: 110; 
             stroke-dashoffset: 110; 
             transition: stroke-dashoffset 1s ease-out, stroke 0.5s ease;
@@ -82,14 +81,19 @@
         
         .val-display { 
             position: absolute; 
-            top: 50%; 
+            top: 52%; 
             left: 50%; 
             transform: translate(-50%, 0%); 
             width: 100%;
         }
         
-        .num { font-size: 1.5rem; font-weight: 800; display: block; color: var(--num-color); letter-spacing: -1px; line-height: 1; }
-        .unit { font-size: 0.55rem; color: var(--subtext); font-weight: 700; text-transform: uppercase; margin-top: 4px; }
+        .num { font-size: 1.5rem; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; color: var(--num-color); letter-spacing: -1px; line-height: 1; }
+        .unit { font-size: 0.55rem; color: var(--subtext); font-weight: 700; text-transform: uppercase; margin-top: 4px; display: block; }
+
+        .trend { font-size: 0.9rem; margin-left: 3px; font-weight: 900; }
+        .trend.up { color: var(--up-color); }
+        .trend.down { color: var(--down-color); }
+        .trend.stable { color: var(--subtext); opacity: 0.3; }
 
         #status { position: fixed; bottom: 10px; width: 100%; text-align: center; font-size: 0.6rem; color: var(--subtext); font-weight: 600; pointer-events: none; }
     </style>
@@ -109,6 +113,9 @@
             { name: "Hot Water",      tempId: "536155", humId: null } 
         ];
 
+        // History storage: stores up to 5 readings (5 mins at 60s intervals)
+        const history = {}; 
+
         function createCards() {
             document.getElementById('dashboard').innerHTML = rooms.map(room => `
                 <div class="card">
@@ -120,7 +127,9 @@
                                 <path class="gauge-progress" id="t-arc-${room.tempId}" d="M 15 50 A 35 35 0 0 1 85 50" />
                             </svg>
                             <div class="val-display">
-                                <span class="num" id="t-val-${room.tempId}">--</span>
+                                <span class="num" id="t-container-${room.tempId}">
+                                    <span id="t-val-${room.tempId}">--</span>
+                                </span>
                                 <span class="unit">Temp °C</span>
                             </div>
                         </div>
@@ -139,6 +148,28 @@
                     </div>
                 </div>
             `).join('');
+        }
+
+        function getTrendIcon(id, currentVal) {
+            if (!history[id]) history[id] = [];
+            
+            // Compare against the oldest value in our 5-minute window
+            const pastVal = history[id].length > 0 ? history[id][0] : null;
+            
+            history[id].push(currentVal);
+            
+            // At 60s intervals, 5 items = 5 minutes of history
+            if (history[id].length > 5) history[id].shift();
+
+            if (pastVal === null) return '';
+
+            const diff = currentVal - pastVal;
+            const threshold = 0.05; 
+
+            if (Math.abs(diff) < threshold) return '<span class="trend stable">−</span>';
+            return diff > 0 
+                ? '<span class="trend up">▲</span>' 
+                : '<span class="trend down">▼</span>';
         }
 
         function getTempColor(t) {
@@ -166,8 +197,6 @@
             if(!el) return;
             const clamped = Math.min(Math.max(val, min), max);
             const percent = (clamped - min) / (max - min);
-            
-            // 110 is the total length of our half-circle path
             const offset = 110 - (percent * 110); 
             el.style.strokeDashoffset = offset;
             el.style.stroke = colorFn(val);
@@ -186,11 +215,18 @@
                 feedIds.forEach((id, index) => { dataMap[id] = dataArray[index]; });
 
                 rooms.forEach(room => {
-                    // Update Temp
                     const tRaw = dataMap[room.tempId];
                     if (tRaw !== undefined) {
-                        const t = parseFloat(tRaw).toFixed(1);
-                        document.getElementById(`t-val-${room.tempId}`).innerText = t;
+                        const t = parseFloat(tRaw);
+                        const trend = getTrendIcon(room.tempId, t);
+                        
+                        document.getElementById(`t-val-${room.tempId}`).innerText = t.toFixed(1);
+                        
+                        const container = document.getElementById(`t-container-${room.tempId}`);
+                        const existingTrend = container.querySelector('.trend');
+                        if (existingTrend) existingTrend.remove();
+                        container.insertAdjacentHTML('beforeend', trend);
+
                         if (room.name === "Hot Water") {
                             updateGauge(`t-arc-${room.tempId}`, t, 15, 75, getWaterTempColor);
                         } else {
@@ -198,7 +234,6 @@
                         }
                     }
 
-                    // Update Hum
                     if (room.humId && dataMap[room.humId] !== undefined) {
                         const h = Math.round(dataMap[room.humId]);
                         document.getElementById(`h-val-${room.humId}`).innerText = h;
@@ -214,7 +249,10 @@
 
         createCards();
         updateData();
-        setInterval(updateData, 30000);
+        
+        // Updated to 60000ms (60 seconds)
+        setInterval(updateData, 60000); 
+        
         if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
     </script>
 </body>
