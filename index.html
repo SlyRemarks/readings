@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -49,6 +49,9 @@
             { name: "Hot Water",      tempId: "536155", humId: null } 
         ];
 
+        // Store history locally to compare current vs past
+        let feedHistory = {};
+
         function createCards() {
             document.getElementById('dashboard').innerHTML = rooms.map(room => `
                 <div class="card">
@@ -80,22 +83,9 @@
             `).join('');
         }
 
-        async function fetchFeedData(id) {
-            const now = Math.floor(Date.now() / 1000);
-            const fiveMinsAgo = now - 300;
-            // Fetch current value and value from 5 mins ago
-            const url = `https://corsproxy.io/?${encodeURIComponent(`https://emoncms.org/feed/data.json?id=${id}&start=${fiveMinsAgo * 1000}&end=${now * 1000}&interval=300&apikey=${API_KEY}`)}`;
-            const resp = await fetch(url);
-            return await resp.json(); 
-        }
-
-        function getTrendIcon(current, past) {
-            if (past === undefined || past === null) return '';
-            const diff = current - past;
-            const threshold = 0.05;
-            if (Math.abs(diff) < threshold) return '<span class="trend stable">−</span>';
-            return diff > 0 ? '<span class="trend up">▲</span>' : '<span class="trend down">▼</span>';
-        }
+        const getTempColor = t => t < 18 ? '#2196f3' : t <= 24 ? '#4caf50' : t <= 27 ? '#ff9800' : '#f44336';
+        const getWaterTempColor = t => t < 40 ? '#2196f3' : t <= 55 ? '#4caf50' : t <= 65 ? '#ff9800' : '#f44336';
+        const getHumColor = h => h < 40 ? '#2196f3' : h <= 60 ? '#4caf50' : '#f44336';
 
         function updateGauge(elId, val, min, max, colorFn) {
             const el = document.getElementById(elId);
@@ -106,47 +96,65 @@
             el.style.stroke = colorFn(val);
         }
 
-        const getTempColor = t => t < 18 ? '#2196f3' : t <= 24 ? '#4caf50' : t <= 27 ? '#ff9800' : '#f44336';
-        const getWaterTempColor = t => t < 40 ? '#2196f3' : t <= 55 ? '#4caf50' : t <= 65 ? '#ff9800' : '#f44336';
-        const getHumColor = h => h < 40 ? '#2196f3' : h <= 60 ? '#4caf50' : '#f44336';
-
         async function updateData() {
+            const ids = rooms.flatMap(r => [r.tempId, r.humId]).filter(id => id !== null);
+            const url = `https://corsproxy.io/?${encodeURIComponent(`https://emoncms.org/feed/fetch.json?ids=${ids.join(',')}&apikey=${API_KEY}`)}`;
+
             try {
-                for (const room of rooms) {
-                    // Temperature Trend Logic
-                    const tData = await fetchFeedData(room.tempId);
-                    if (tData && tData.length >= 1) {
-                        const currentT = tData[tData.length - 1][1];
-                        const pastT = tData[0][1];
+                const response = await fetch(url);
+                const dataArray = await response.json();
+                if (!dataArray) return;
+
+                const dataMap = {};
+                ids.forEach((id, index) => { dataMap[id] = parseFloat(dataArray[index]); });
+
+                rooms.forEach(room => {
+                    const currentT = dataMap[room.tempId];
+                    if (currentT !== undefined) {
+                        // Trend Logic: Compare current against stored value from 5 mins ago
+                        if (!feedHistory[room.tempId]) feedHistory[room.tempId] = [];
+                        const pastT = feedHistory[room.tempId][0]; // Oldest in our 5-min window
                         
+                        feedHistory[room.tempId].push(currentT);
+                        if (feedHistory[room.tempId].length > 5) feedHistory[room.tempId].shift();
+
+                        // Update Text
                         document.getElementById(`t-val-${room.tempId}`).innerText = currentT.toFixed(1);
+                        
+                        // Update Arrow
                         const container = document.getElementById(`t-container-${room.tempId}`);
                         const oldTrend = container.querySelector('.trend');
                         if (oldTrend) oldTrend.remove();
-                        container.insertAdjacentHTML('beforeend', getTrendIcon(currentT, pastT));
+                        
+                        if (pastT !== undefined) {
+                            const diff = currentT - pastT;
+                            const icon = Math.abs(diff) < 0.05 ? '<span class="trend stable">−</span>' : 
+                                         diff > 0 ? '<span class="trend up">▲</span>' : '<span class="trend down">▼</span>';
+                            container.insertAdjacentHTML('beforeend', icon);
+                        }
 
+                        // Update Gauge
                         const colorFn = room.name === "Hot Water" ? getWaterTempColor : getTempColor;
                         const range = room.name === "Hot Water" ? [15, 75] : [10, 35];
                         updateGauge(`t-arc-${room.tempId}`, currentT, range[0], range[1], colorFn);
                     }
 
-                    // Humidity (No trend needed for hum, keeping it simple)
-                    if (room.humId) {
-                        const hUrl = `https://corsproxy.io/?${encodeURIComponent(`https://emoncms.org/feed/value.json?id=${room.humId}&apikey=${API_KEY}`)}`;
-                        const hResp = await fetch(hUrl);
-                        const hVal = await hResp.json();
-                        const h = Math.round(parseFloat(hVal));
+                    if (room.humId && dataMap[room.humId] !== undefined) {
+                        const h = Math.round(dataMap[room.humId]);
                         document.getElementById(`h-val-${room.humId}`).innerText = h;
                         updateGauge(`h-arc-${room.humId}`, h, 0, 100, getHumColor);
                     }
-                }
-                document.getElementById('status').innerText = "TESTLast Update: " + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-            } catch (e) { document.getElementById('status').innerText = "Offline"; }
+                });
+                
+                document.getElementById('status').innerText = "Last Update: " + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+            } catch (e) { 
+                document.getElementById('status').innerText = "Offline - Check Connection"; 
+            }
         }
 
         createCards();
         updateData();
-        setInterval(updateData, 60000);
+        setInterval(updateData, 60000); 
     </script>
 </body>
 </html>
