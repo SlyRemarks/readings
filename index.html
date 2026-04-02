@@ -149,7 +149,7 @@
         function createCards() {
             document.getElementById('dashboard').innerHTML = rooms.map(room => {
                 const label1 = room.id === "solar" ? "Total kWh" : "Temp °C";
-                const label2 = room.id === "solar" ? "Now Watts" : "Hum %";
+                const label2 = room.id === "solar" ? "Watts" : "Hum %";
 
                 return `
                 <div class="card room-${room.id}">
