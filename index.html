@@ -30,15 +30,14 @@
         .num { font-size: 1.5rem; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; color: var(--num-color); letter-spacing: -1px; line-height: 1; }
         .unit { font-size: 0.55rem; color: var(--subtext); font-weight: 700; text-transform: uppercase; margin-top: 4px; display: block; }
         
-        /* Trend Styles */
         .trend { font-size: 0.9rem; margin-left: 3px; font-weight: 900; }
         .trend.up { color: var(--up-color); }
         .trend.down { color: var(--down-color); }
-        .trend.h-up { color: var(--hum-up); }   /* Blue for rising humidity */
-        .trend.h-down { color: var(--hum-down); } /* Orange for falling humidity */
+        .trend.h-up { color: var(--hum-up); }
+        .trend.h-down { color: var(--hum-down); }
         .trend.stable { color: var(--subtext); opacity: 0.3; }
 
-        #status { position: fixed; bottom: 10px; width: 100%; text-align: center; font-size: 0.6rem; color: var(--subtext); font-weight: 600; pointer-events: none; }
+        #status { position: fixed; bottom: 10px; width: 100%; text-align: center; font-size: 0.6rem; color: var(--subtext); font-weight: 700; pointer-events: none; text-transform: uppercase; letter-spacing: 0.5px; }
     </style>
 </head>
 <body>
@@ -56,6 +55,7 @@
         ];
 
         let feedHistory = {};
+        let lastSuccessTime = null; // To track exactly when the data arrived
 
         function createCards() {
             document.getElementById('dashboard').innerHTML = rooms.map(room => `
@@ -104,13 +104,9 @@
         function getTrendHTML(current, past, isHumidity = false) {
             if (past === undefined) return '';
             const diff = current - past;
-            const threshold = isHumidity ? 0.5 : 0.05; // Humidity needs a larger threshold
-            
+            const threshold = isHumidity ? 0.5 : 0.05;
             if (Math.abs(diff) < threshold) return '<span class="trend stable">−</span>';
-            
-            if (isHumidity) {
-                return diff > 0 ? '<span class="trend h-up">▲</span>' : '<span class="trend h-down">▼</span>';
-            }
+            if (isHumidity) return diff > 0 ? '<span class="trend h-up">▲</span>' : '<span class="trend h-down">▼</span>';
             return diff > 0 ? '<span class="trend up">▲</span>' : '<span class="trend down">▼</span>';
         }
 
@@ -127,49 +123,61 @@
                 ids.forEach((id, index) => { dataMap[id] = parseFloat(dataArray[index]); });
 
                 rooms.forEach(room => {
-                    // PROCESS TEMPERATURE
                     const currentT = dataMap[room.tempId];
                     if (currentT !== undefined) {
                         if (!feedHistory[room.tempId]) feedHistory[room.tempId] = [];
                         const pastT = feedHistory[room.tempId][0];
                         feedHistory[room.tempId].push(currentT);
                         if (feedHistory[room.tempId].length > 5) feedHistory[room.tempId].shift();
-
                         document.getElementById(`t-val-${room.tempId}`).innerText = currentT.toFixed(1);
                         const tCont = document.getElementById(`t-container-${room.tempId}`);
                         const oldT = tCont.querySelector('.trend'); if (oldT) oldT.remove();
                         tCont.insertAdjacentHTML('beforeend', getTrendHTML(currentT, pastT, false));
-
                         const colorFn = room.name === "Hot Water" ? getWaterTempColor : getTempColor;
-                        const range = room.name === "Hot Water" ? [15, 75] : [10, 35];
-                        updateGauge(`t-arc-${room.tempId}`, currentT, range[0], range[1], colorFn);
+                        updateGauge(`t-arc-${room.tempId}`, currentT, room.name === "Hot Water" ? 15:10, room.name === "Hot Water" ? 75:35, colorFn);
                     }
 
-                    // PROCESS HUMIDITY
                     if (room.humId && dataMap[room.humId] !== undefined) {
                         const currentH = dataMap[room.humId];
                         if (!feedHistory[room.humId]) feedHistory[room.humId] = [];
                         const pastH = feedHistory[room.humId][0];
                         feedHistory[room.humId].push(currentH);
                         if (feedHistory[room.humId].length > 5) feedHistory[room.humId].shift();
-
-                        const hDisplay = Math.round(currentH);
-                        document.getElementById(`h-val-${room.humId}`).innerText = hDisplay;
+                        document.getElementById(`h-val-${room.humId}`).innerText = Math.round(currentH);
                         const hCont = document.getElementById(`h-container-${room.humId}`);
                         const oldH = hCont.querySelector('.trend'); if (oldH) oldH.remove();
                         hCont.insertAdjacentHTML('beforeend', getTrendHTML(currentH, pastH, true));
-
                         updateGauge(`h-arc-${room.humId}`, currentH, 0, 100, getHumColor);
                     }
                 });
                 
-                document.getElementById('status').innerText = "Last Update: " + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-            } catch (e) { document.getElementById('status').innerText = "Offline"; }
+                lastSuccessTime = Date.now(); // Record success
+                updateTimeAgo(); // Trigger update immediately
+            } catch (e) { 
+                document.getElementById('status').innerText = "Offline"; 
+            }
+        }
+
+        function updateTimeAgo() {
+            if (!lastSuccessTime) return;
+            const diff = Math.floor((Date.now() - lastSuccessTime) / 1000);
+            
+            let text = "";
+            if (diff < 60) {
+                text = `Updated ${diff}s ago`;
+            } else {
+                const mins = Math.floor(diff / 60);
+                const secs = diff % 60;
+                text = `Updated ${mins}m ${secs}s ago`;
+            }
+            document.getElementById('status').innerText = text;
         }
 
         createCards();
         updateData();
-        setInterval(updateData, 60000); 
+        
+        setInterval(updateData, 60000); // Fetch data every minute
+        setInterval(updateTimeAgo, 1000); // Update the "time ago" counter every second
     </script>
 </body>
 </html>
