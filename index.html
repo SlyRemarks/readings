@@ -47,14 +47,12 @@
             border: 1px solid rgba(255,255,255,0.05);
         }
         
-        /* THEMATIC COLORS */
         .room-living-room { --card-color: #34495e; }
         .room-big-bedroom { --card-color: #6c5ce7; }
         .room-small-bedroom { --card-color: #e67e22; }
         .room-hot-water { --card-color: #c0392b; height: 160px !important; }
         .room-solar { --card-color: #f1c40f; height: 140px !important; }
 
-        /* HIDE GAUGES FOR SOLAR ONLY */
         .room-solar svg:not(.card-illustration) { display: none; }
         .room-solar .val-display { position: static; transform: none; margin-top: 10px; width: 100%; }
         .room-solar .num { font-size: 2.4rem; }
@@ -122,23 +120,35 @@
             text-transform: uppercase; 
             letter-spacing: 1.5px; 
             background: linear-gradient(to top, var(--bg) 70%, transparent);
-            pointer-events: none;
+            pointer-events: auto;
             z-index: 10;
         }
+        #status span { cursor: pointer; text-decoration: underline; }
     </style>
 </head>
 <body>
 
     <div class="container" id="dashboard"></div>
-    <div id="status">Syncing...</div>
+    <div id="status">Checking Key...</div>
 
     <script>
-        const API_KEY = "256cd79c98126a993e5b48790285f0cc";
-        
+        // --- STORAGE LOGIC ---
+        let API_KEY = localStorage.getItem('emoncms_apikey');
+
+        function setApiKey() {
+            const newKey = prompt("Enter your EmonCMS API Key (read-only recommended):", API_KEY || "");
+            if (newKey) {
+                localStorage.setItem('emoncms_apikey', newKey);
+                API_KEY = newKey;
+                updateData();
+            }
+        }
+
+        // --- DASHBOARD LOGIC ---
         const rooms = [
             { id: "living-room",   name: "Living Room",   tempId: "537676", humId: "537677", svg: '<path d="M10,85h80v5H10V85z M20,80h10V40H20V80z M70,80h10V40H70V80z M30,40h40v5H30V40z M35,80c0-10,5-15,15-25c10,10,15,15,15,25H35z M45,80c0-5,2-8,5-12c3,4,5,7,5,12H45z"/>' },
-            { id: "big-bedroom",    name: "Big Bedroom",    tempId: "537680", humId: "537681", svg: '<path d="M15,50v40h70V50l-10-10H25L15,50z M25,45V30h50v15h5V25l-10-10H30L20,25v20H25z"/>' },
-            { id: "small-bedroom",  name: "Small Bedroom",  tempId: "537674", humId: "537675", svg: '<path d="M20,60v30h60V60H20z M30,55V40h40v15h5V35l-10-10H35L25,35v20H30z"/>' },
+            { id: "big-bedroom",    name: "Big Bedroom",   tempId: "537680", humId: "537681", svg: '<path d="M15,50v40h70V50l-10-10H25L15,50z M25,45V30h50v15h5V25l-10-10H30L20,25v20H25z"/>' },
+            { id: "small-bedroom",  name: "Small Bedroom", tempId: "537674", humId: "537675", svg: '<path d="M20,60v30h60V60H20z M30,55V40h40v15h5V35l-10-10H35L25,35v20H30z"/>' },
             { id: "hot-water",      name: "Hot Water",      tempId: "536155", humId: null,     svg: '<path d="M20,70v20h60V70H20z M30,65V30c0-11,9-20,20-20s20,9,20,20v35H30z"/>' },
             { id: "solar",          name: "Solar",          tempId: "539991", humId: "539990", svg: '<circle cx="50" cy="50" r="20"/><path d="M50,10V25M50,75V90M10,50H25M75,50H90M21,21l11,11M68,68l11,11M21,79l11,-11M68,32l11,-11" stroke="white" stroke-width="5"/>' }
         ];
@@ -207,13 +217,21 @@
         }
 
         async function updateData() {
-            const ids = rooms.flatMap(r => [r.tempId, r.humId]).filter(id => id !== null && !id.includes("YOUR_"));
-            if (ids.length === 0) return;
+            if (!API_KEY) {
+                document.getElementById('status').innerHTML = "No API Key. <span onclick='setApiKey()'>Set Key</span>";
+                return;
+            }
 
+            const ids = rooms.flatMap(r => [r.tempId, r.humId]).filter(id => id !== null);
             const url = `https://corsproxy.io/?${encodeURIComponent(`https://emoncms.org/feed/fetch.json?ids=${ids.join(',')}&apikey=${API_KEY}`)}`;
 
             try {
                 const response = await fetch(url);
+                if (response.status === 401) {
+                    document.getElementById('status').innerHTML = "Invalid Key. <span onclick='setApiKey()'>Fix</span>";
+                    return;
+                }
+
                 const dataArray = await response.json();
                 if (!dataArray || !Array.isArray(dataArray)) throw new Error("Invalid response");
                 
@@ -221,7 +239,7 @@
                 ids.forEach((id, index) => { dataMap[id] = parseFloat(dataArray[index]); });
 
                 rooms.forEach(room => {
-                    // Handle Data 1 (Temp or Solar kWh)
+                    // Data 1
                     const currentT = dataMap[room.tempId];
                     if (currentT !== undefined && !isNaN(currentT)) {
                         if (!feedHistory[room.tempId]) feedHistory[room.tempId] = [];
@@ -240,7 +258,7 @@
                         }
                     }
 
-                    // Handle Data 2 (Humidity or Solar Watts)
+                    // Data 2
                     if (room.humId && dataMap[room.humId] !== undefined && !isNaN(dataMap[room.humId])) {
                         const currentH = dataMap[room.humId];
                         if (!feedHistory[room.humId]) feedHistory[room.humId] = [];
@@ -262,21 +280,15 @@
                 updateTimeAgo();
             } catch (e) { 
                 console.error(e);
-                document.getElementById('status').innerText = "Offline/Error"; 
+                document.getElementById('status').innerText = "Sync Error"; 
             }
         }
 
         function updateTimeAgo() {
             if (!lastSuccessTime) return;
             const diff = Math.floor((Date.now() - lastSuccessTime) / 1000);
-            let text = "";
-            if (diff < 60) text = `Updated ${diff}s ago`;
-            else {
-                const mins = Math.floor(diff / 60);
-                const secs = diff % 60;
-                text = `Updated ${mins}m ${secs}s ago`;
-            }
-            document.getElementById('status').innerText = text;
+            let text = diff < 60 ? `Updated ${diff}s ago` : `Updated ${Math.floor(diff/60)}m ${diff%60}s ago`;
+            document.getElementById('status').innerHTML = `${text} | <span onclick='setApiKey()'>Settings</span>`;
         }
 
         createCards();
