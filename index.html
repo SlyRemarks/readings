@@ -16,111 +16,30 @@
             --hum-up: #40c4ff; --hum-down: #ffb74d;
         }
 
-        body { 
-            font-family: -apple-system, sans-serif; 
-            background: var(--bg); 
-            margin: 0; 
-            padding: 15px; 
-            padding-bottom: 85px; 
-            min-height: 100vh; 
-            box-sizing: border-box; 
-            overflow-y: auto; 
-        }
-
-        .container { 
-            display: grid; 
-            grid-template-columns: 1fr; 
-            gap: 15px; 
-        }
-        
-        .card { 
-            position: relative;
-            background-color: var(--card-color, var(--card-default));
-            background-image: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.3) 100%);
-            height: 120px;
-            padding: 35px 20px; 
-            border-radius: 32px; 
-            box-shadow: 0 12px 30px rgba(0,0,0,0.4); 
-            text-align: center; 
-            color: var(--text-card);
-            overflow: hidden; 
-            border: 1px solid rgba(255,255,255,0.05);
-        }
-        
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; padding-bottom: 85px; min-height: 100vh; box-sizing: border-box; overflow-y: auto; }
+        .container { display: grid; grid-template-columns: 1fr; gap: 15px; }
+        .card { position: relative; background-color: var(--card-color, var(--card-default)); background-image: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.3) 100%); height: 120px; padding: 35px 20px; border-radius: 32px; box-shadow: 0 12px 30px rgba(0,0,0,0.4); text-align: center; color: var(--text-card); overflow: hidden; border: 1px solid rgba(255,255,255,0.05); }
         .room-living-room { --card-color: #34495e; }
         .room-big-bedroom { --card-color: #6c5ce7; }
         .room-small-bedroom { --card-color: #e67e22; }
         .room-hot-water { --card-color: #c0392b; height: 160px !important; }
         .room-solar { --card-color: #f39c12; height: 140px !important; }
-
-        .card-illustration {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-5deg);
-            width: 85%;       
-            height: auto;
-            opacity: 0.05;    
-            pointer-events: none;
-            fill: #fff;
-            z-index: 1;
-        }
-
+        .card-illustration { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-5deg); width: 85%; height: auto; opacity: 0.05; pointer-events: none; fill: #fff; z-index: 1; }
         .card-content-wrapper { position: relative; z-index: 2; }
-
-        .room-name { 
-            font-weight: 800; 
-            font-size: 0.85rem; 
-            text-transform: uppercase; 
-            letter-spacing: 3px; 
-            margin-bottom: 25px; 
-            color: #fff; 
-            display: block; 
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        }
-
-        .gauges-row { 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            gap: 15px; 
-        }
-
+        .room-name { font-weight: 800; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 25px; color: #fff; display: block; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        .gauges-row { display: flex; justify-content: center; align-items: center; gap: 15px; }
         .gauge-box { position: relative; width: 48%; max-width: 170px; }
         .gauge-box.solo { width: 65%; max-width: 210px; }
-        
         svg { width: 100%; height: auto; display: block; }
         .gauge-bg { fill: none; stroke: var(--gauge-track); stroke-width: 10; stroke-linecap: round; }
         .gauge-progress { fill: none; stroke-width: 10; stroke-linecap: round; stroke-dasharray: 110; stroke-dashoffset: 110; transition: stroke-dashoffset 1s ease-out, stroke 0.5s ease; }
-        
         .val-display { position: absolute; top: 52%; left: 50%; transform: translate(-50%, 0%); width: 100%; }
-        
         .num { font-size: 1.8rem; font-weight: 800; color: #fff; letter-spacing: -1px; line-height: 1; text-shadow: 0 1px 10px rgba(0,0,0,0.5); }
         .unit { font-size: 0.6rem; color: var(--subtext-card); font-weight: 700; text-transform: uppercase; margin-top: 5px; display: block; }
-        
-        .trend { font-size: 0.9rem; margin-left: 4px; font-weight: 900; }
-        .trend.up { color: var(--up-color); }
-        .trend.down { color: var(--down-color); }
-        .trend.h-up { color: var(--hum-up); }
-        .trend.h-down { color: var(--hum-down); }
-        .trend.stable { color: #fff; opacity: 0.2; }
-
-        #status { 
-            position: fixed; 
-            bottom: 0; left: 0; right: 0; 
-            padding: 22px 0; 
-            text-align: center; 
-            font-size: 0.65rem; 
-            color: var(--subtext-card); 
-            font-weight: 700; 
-            text-transform: uppercase; 
-            letter-spacing: 1.5px; 
-            background: linear-gradient(to top, var(--bg) 70%, transparent);
-            pointer-events: auto;
-            z-index: 10;
-        }
+        #status { position: fixed; bottom: 0; left: 0; right: 0; padding: 22px 0; text-align: center; font-size: 0.65rem; color: var(--subtext-card); font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; background: linear-gradient(to top, var(--bg) 70%, transparent); z-index: 10; }
         #status span { cursor: pointer; text-decoration: underline; }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js"></script>
 </head>
 <body>
 
@@ -128,16 +47,19 @@
     <div id="status">Checking Key...</div>
 
     <script>
+        // --- CONFIGURATION ---
         let API_KEY = localStorage.getItem('emoncms_apikey');
-        let feedHistory = {};
+        const LAT = 51.5072; 
+        const LON = -0.1276; 
+
         let lastSuccessTime = null;
 
         const rooms = [
-            { id: "living-room",   name: "Living Room",   tempId: "537676", humId: "537677", svg: '<path d="M10,85h80v5H10V85z M20,80h10V40H20V80z M70,80h10V40H70V80z M30,40h40v5H30V40z M35,80c0-10,5-15,15-25c10,10,15,15,15,25H35z M45,80c0-5,2-8,5-12c3,4,5,7,5,12H45z"/>' },
-            { id: "big-bedroom",    name: "Big Bedroom",   tempId: "537680", humId: "537681", svg: '<path d="M15,50v40h70V50l-10-10H25L15,50z M25,45V30h50v15h5V25l-10-10H30L20,25v20H25z"/>' },
-            { id: "small-bedroom",  name: "Small Bedroom", tempId: "537674", humId: "537675", svg: '<path d="M20,60v30h60V60H20z M30,55V40h40v15h5V35l-10-10H35L25,35v20H30z"/>' },
-            { id: "hot-water",      name: "Hot Water",      tempId: "536155", humId: null,     svg: '<path d="M20,70v20h60V70H20z M30,65V30c0-11,9-20,20-20s20,9,20,20v35H30z"/>' },
-            { id: "solar",          name: "Solar",          tempId: "539991", humId: "539990", svg: '<circle cx="50" cy="50" r="20"/><path d="M50,10V25M50,75V90M10,50H25M75,50H90M21,21l11,11M68,68l11,11M21,79l11,-11M68,32l11,-11" stroke="white" stroke-width="5"/>' }
+            { id: "living-room",   name: "Living Room",   tempId: "537676", humId: "537677", svg: '<path d="M10,85h80v5H10V85z M20,80h10V40H20V80z M70,80h10V40H70V80z M30,40h40v5H30V40z"/>' },
+            { id: "big-bedroom",    name: "Big Bedroom",   tempId: "537680", humId: "537681", svg: '<path d="M15,50v40h70V50l-10-10H25L15,50z"/>' },
+            { id: "small-bedroom",  name: "Small Bedroom", tempId: "537674", humId: "537675", svg: '<path d="M20,60v30h60V60H20z"/>' },
+            { id: "hot-water",      name: "Hot Water",      tempId: "536155", humId: null,     svg: '<path d="M30,65V30c0-11,9-20,20-20s20,9,20,20v35H30z"/>' },
+            { id: "solar",          name: "Solar",          tempId: "539991", humId: "539990", svg: '<circle cx="50" cy="50" r="20"/><path d="M50,10V25M50,75V90M10,50H25M75,50H90" stroke="white" stroke-width="5"/>' }
         ];
 
         function setApiKey() {
@@ -147,6 +69,20 @@
                 API_KEY = newKey;
                 updateData();
             }
+        }
+
+        function getSunProgress() {
+            const times = SunCalc.getTimes(new Date(), LAT, LON);
+            const now = new Date();
+            const start = times.sunrise;
+            const end = times.sunset;
+
+            if (now < start) return 0;
+            if (now > end) return 100;
+
+            const totalDaylight = end - start;
+            const elapsed = now - start;
+            return (elapsed / totalDaylight) * 100;
         }
 
         function createCards() {
@@ -186,10 +122,6 @@
             }).join('');
         }
 
-        const getTempColor = t => t < 18 ? '#40c4ff' : t <= 24 ? '#00e676' : t <= 27 ? '#ffb74d' : '#ff5252';
-        const getWaterTempColor = t => t < 40 ? '#40c4ff' : t <= 55 ? '#00e676' : t <= 65 ? '#ffb74d' : '#ff5252';
-        const getHumColor = h => h < 40 ? '#40c4ff' : h <= 60 ? '#00e676' : '#ff5252';
-
         function updateGauge(elId, val, min, max, colorFn) {
             const el = document.getElementById(elId);
             if(!el) return;
@@ -199,21 +131,11 @@
             el.style.stroke = colorFn(val);
         }
 
-        function getTrendHTML(current, past, isHumidity = false) {
-            if (past === undefined) return '';
-            const diff = current - past;
-            const threshold = isHumidity ? 0.5 : 0.05;
-            if (Math.abs(diff) < threshold) return '<span class="trend stable">−</span>';
-            if (isHumidity) return diff > 0 ? '<span class="trend h-up">▲</span>' : '<span class="trend h-down">▼</span>';
-            return diff > 0 ? '<span class="trend up">▲</span>' : '<span class="trend down">▼</span>';
-        }
-
         async function updateData() {
             if (!API_KEY) {
                 document.getElementById('status').innerHTML = "No API Key. <span onclick='setApiKey()'>Set Key</span>";
                 return;
             }
-
             const ids = rooms.flatMap(r => [r.tempId, r.humId]).filter(id => id !== null);
             const emonUrl = `https://emoncms.org/feed/fetch.json?ids=${ids.join(',')}&apikey=${API_KEY}&_=${Date.now()}`;
             const url = `https://corsproxy.io/?${encodeURIComponent(emonUrl)}`;
@@ -225,44 +147,26 @@
                 ids.forEach((id, index) => { dataMap[id] = parseFloat(dataArray[index]); });
 
                 rooms.forEach(room => {
-                    // Update First Metric
                     const cur1 = dataMap[room.tempId];
                     if (!isNaN(cur1)) {
-                        const past1 = (feedHistory[room.tempId] || [])[0];
-                        document.getElementById(`t-val-${room.tempId}`).innerText = room.id === "solar" ? cur1.toFixed(1) : cur1.toFixed(1);
-                        const cont1 = document.getElementById(`t-container-${room.tempId}`);
-                        const oldT = cont1.querySelector('.trend'); if (oldT) oldT.remove();
-                        cont1.insertAdjacentHTML('beforeend', getTrendHTML(cur1, past1, false));
+                        document.getElementById(`t-val-${room.tempId}`).innerText = room.id === "solar" ? cur1.toFixed(2) : cur1.toFixed(1);
                         
-                        if (!feedHistory[room.tempId]) feedHistory[room.tempId] = [];
-                        feedHistory[room.tempId].push(cur1);
-                        if (feedHistory[room.tempId].length > 5) feedHistory[room.tempId].shift();
-
-                        if (room.id !== "solar") {
-                            const colorFn = room.id === "hot-water" ? getWaterTempColor : getTempColor;
-                            updateGauge(`t-arc-${room.tempId}`, cur1, room.id === "hot-water" ? 15:10, room.id === "hot-water" ? 75:35, colorFn);
+                        if (room.id === "solar") {
+                            updateGauge(`t-arc-${room.tempId}`, getSunProgress(), 0, 100, () => '#f1c40f');
+                        } else {
+                            const colorFn = room.id === "hot-water" ? (t => t < 45 ? '#40c4ff' : '#ff5252') : (t => t < 24 ? '#00e676' : '#ff5252');
+                            updateGauge(`t-arc-${room.tempId}`, cur1, 10, 35, colorFn);
                         }
                     }
 
-                    // Update Second Metric
                     if (room.humId) {
                         const cur2 = dataMap[room.humId];
                         if (!isNaN(cur2)) {
-                            const past2 = (feedHistory[room.humId] || [])[0];
                             document.getElementById(`h-val-${room.humId}`).innerText = Math.round(cur2);
-                            const cont2 = document.getElementById(`h-container-${room.humId}`);
-                            const oldH = cont2.querySelector('.trend'); if (oldH) oldH.remove();
-                            cont2.insertAdjacentHTML('beforeend', getTrendHTML(cur2, past2, true));
-
-                            if (!feedHistory[room.humId]) feedHistory[room.humId] = [];
-                            feedHistory[room.humId].push(cur2);
-                            if (feedHistory[room.humId].length > 5) feedHistory[room.humId].shift();
-
                             if (room.id === "solar") {
-                                // Solar Watts Gauge Updated (0 to 3500W)
-                                updateGauge(`h-arc-${room.humId}`, cur2, 0, 3500, () => '#f1c40f');
+                                updateGauge(`h-arc-${room.humId}`, cur2, 0, 3500, () => '#f39c12');
                             } else {
-                                updateGauge(`h-arc-${room.humId}`, cur2, 0, 100, getHumColor);
+                                updateGauge(`h-arc-${room.humId}`, cur2, 0, 100, (h => h < 60 ? '#00e676' : '#ff5252'));
                             }
                         }
                     }
