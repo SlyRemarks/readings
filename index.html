@@ -17,25 +17,49 @@
         }
 
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; padding-bottom: 85px; min-height: 100vh; box-sizing: border-box; overflow-y: auto; }
-        .container { display: grid; grid-template-columns: 1fr; gap: 15px; }
+        
+        /* VERSION TAG */
+        .version-tag {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 0.6rem;
+            color: rgba(255,255,255,0.2);
+            font-weight: 700;
+            letter-spacing: 1px;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .container { display: grid; grid-template-columns: 1fr; gap: 15px; margin-top: 10px; }
+        
         .card { position: relative; background-color: var(--card-color, var(--card-default)); background-image: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.3) 100%); height: 120px; padding: 35px 20px; border-radius: 32px; box-shadow: 0 12px 30px rgba(0,0,0,0.4); text-align: center; color: var(--text-card); overflow: hidden; border: 1px solid rgba(255,255,255,0.05); }
+        
         .room-living-room { --card-color: #34495e; }
         .room-big-bedroom { --card-color: #6c5ce7; }
         .room-small-bedroom { --card-color: #e67e22; }
         .room-hot-water { --card-color: #c0392b; height: 160px !important; }
-        .room-solar { --card-color: #f39c12; height: 140px !important; }
+        .room-solar { --card-color: #f39c12; height: 140px !important; transition: box-shadow 1s ease; }
+        
+        /* Solar Glow effect when active */
+        .solar-active { box-shadow: 0 0 20px rgba(241, 196, 15, 0.2), 0 12px 30px rgba(0,0,0,0.4); }
+
         .card-illustration { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-5deg); width: 85%; height: auto; opacity: 0.05; pointer-events: none; fill: #fff; z-index: 1; }
         .card-content-wrapper { position: relative; z-index: 2; }
         .room-name { font-weight: 800; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 25px; color: #fff; display: block; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        
         .gauges-row { display: flex; justify-content: center; align-items: center; gap: 15px; }
         .gauge-box { position: relative; width: 48%; max-width: 170px; }
         .gauge-box.solo { width: 65%; max-width: 210px; }
+        
         svg { width: 100%; height: auto; display: block; }
         .gauge-bg { fill: none; stroke: var(--gauge-track); stroke-width: 10; stroke-linecap: round; }
         .gauge-progress { fill: none; stroke-width: 10; stroke-linecap: round; stroke-dasharray: 110; stroke-dashoffset: 110; transition: stroke-dashoffset 1s ease-out, stroke 0.5s ease; }
+        
         .val-display { position: absolute; top: 52%; left: 50%; transform: translate(-50%, 0%); width: 100%; }
         .num { font-size: 1.8rem; font-weight: 800; color: #fff; letter-spacing: -1px; line-height: 1; text-shadow: 0 1px 10px rgba(0,0,0,0.5); }
         .unit { font-size: 0.6rem; color: var(--subtext-card); font-weight: 700; text-transform: uppercase; margin-top: 5px; display: block; }
+        
         #status { position: fixed; bottom: 0; left: 0; right: 0; padding: 22px 0; text-align: center; font-size: 0.65rem; color: var(--subtext-card); font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; background: linear-gradient(to top, var(--bg) 70%, transparent); z-index: 10; }
         #status span { cursor: pointer; text-decoration: underline; }
     </style>
@@ -43,11 +67,11 @@
 </head>
 <body>
 
+    <div class="version-tag">V1.2.0</div>
     <div class="container" id="dashboard"></div>
     <div id="status">Checking Key...</div>
 
     <script>
-        // --- CONFIGURATION ---
         let API_KEY = localStorage.getItem('emoncms_apikey');
         const LAT = 51.5072; 
         const LON = -0.1276; 
@@ -76,6 +100,13 @@
             const now = new Date();
             const start = times.sunrise;
             const end = times.sunset;
+
+            // Update Solar card glow
+            const solarCard = document.querySelector('.room-solar');
+            if (solarCard) {
+                if (now >= start && now <= end) solarCard.classList.add('solar-active');
+                else solarCard.classList.remove('solar-active');
+            }
 
             if (now < start) return 0;
             if (now > end) return 100;
@@ -150,7 +181,6 @@
                     const cur1 = dataMap[room.tempId];
                     if (!isNaN(cur1)) {
                         document.getElementById(`t-val-${room.tempId}`).innerText = room.id === "solar" ? cur1.toFixed(2) : cur1.toFixed(1);
-                        
                         if (room.id === "solar") {
                             updateGauge(`t-arc-${room.tempId}`, getSunProgress(), 0, 100, () => '#f1c40f');
                         } else {
