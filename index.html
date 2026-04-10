@@ -84,13 +84,17 @@
         let lastSuccessTime = null;
 
         const rooms = [
-            { id: "living-room",   name: "Living Room",   tempId: "537676", humId: "537677", svg: '<path d="M15,90 h70 v-5 h-70 v5 M20,85 v-40 h60 v40 h-10 v-30 h-40 v30 h-10" fill="black"/>
-        
-        <rect x="35" y="81" width="30" height="4" rx="2" fill="black" />
-        <rect x="38" y="77" width="24" height="4" rx="2" fill="black" />
-
-        <path d="M50,61 c-6,8 3,18 0,25 c6,0 8-6 0-25" fill="black" opacity="0.9">
-        </path>' },
+            { 
+                id: "living-room",   
+                name: "Living Room",   
+                tempId: "537676", 
+                humId: "537677", 
+                // Note the backticks used here for multi-line support
+                svg: `<path d="M15,90 h70 v-5 h-70 v5 M20,85 v-40 h60 v40 h-10 v-30 h-40 v30 h-10" fill="white"/>
+                      <rect x="35" y="81" width="30" height="4" rx="2" fill="white" opacity="0.6" />
+                      <rect x="38" y="77" width="24" height="4" rx="2" fill="white" opacity="0.8" />
+                      <path d="M50,61 c-6,8 3,18 0,25 c6,0 8-6 0-25" fill="#ff5252" opacity="0.9"></path>` 
+            },
             { id: "big-bedroom",    name: "Big Bedroom",   tempId: "537680", humId: "537681", svg: '<path d="M15,50v40h70V50l-10-10H25L15,50z"/>' },
             { id: "small-bedroom",  name: "Small Bedroom", tempId: "537674", humId: "537675", svg: '<path d="M20,60v30h60V60H20z"/>' },
             { id: "hot-water",      name: "Hot Water",      tempId: "536155", humId: null,     svg: '<path d="M30,65V30c0-11,9-20,20-20s20,9,20,20v35H30z"/>' },
