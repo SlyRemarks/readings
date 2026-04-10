@@ -62,6 +62,11 @@
         
         #status { position: fixed; bottom: 0; left: 0; right: 0; padding: 22px 0; text-align: center; font-size: 0.65rem; color: var(--subtext-card); font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; background: linear-gradient(to top, var(--bg) 70%, transparent); z-index: 10; }
         #status span { cursor: pointer; text-decoration: underline; }
+        
+        .card:active {
+            transform: scale(0.98);
+            transition: transform 0.1s;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js"></script>
 </head>
