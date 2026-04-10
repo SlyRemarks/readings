@@ -190,7 +190,7 @@
                             updateGauge(`t-arc-${room.tempId}`, getSunProgress(), 0, 100, () => '#f1c40f');
                         } else {
                             const colorFn = room.id === "hot-water" ? (t => t < 45 ? '#40c4ff' : '#ff5252') : (t => t < 24 ? '#00e676' : '#ff5252');
-                            updateGauge(`t-arc-${room.tempId}`, cur1, 10, 35, colorFn);
+                            updateGauge(`t-arc-${room.tempId}`, cur1, 10, 70, colorFn);
                         }
                     }
 
