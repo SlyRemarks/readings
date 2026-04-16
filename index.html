@@ -18,7 +18,6 @@
 
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; padding-bottom: 85px; min-height: 100vh; box-sizing: border-box; overflow-y: auto; }
         
-        /* VERSION TAG */
         .version-tag {
             position: absolute;
             top: 10px;
@@ -41,7 +40,6 @@
         .room-hot-water { --card-color: #c0392b; height: 160px !important; }
         .room-solar { --card-color: #f39c12; height: 140px !important; transition: box-shadow 1s ease; }
         
-        /* Solar Glow effect when active */
         .solar-active { box-shadow: 0 0 20px rgba(241, 196, 15, 0.2), 0 12px 30px rgba(0,0,0,0.4); }
 
         .card-illustration { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-5deg); width: 85%; height: auto; opacity: 0.03; pointer-events: none; fill: #fff; z-index: 1; }
@@ -72,7 +70,7 @@
 </head>
 <body>
 
-    <div class="version-tag">v1.2.5</div>
+    <div class="version-tag">v1.2.7</div>
     <div class="container" id="dashboard"></div>
     <div id="status">Checking Key...</div>
 
@@ -89,7 +87,6 @@
                 name: "Living Room",   
                 tempId: "537676", 
                 humId: "537677", 
-                // Note the backticks used here for multi-line support
                 svg: `<path d="M15,90 h70 v-5 h-70 v5 M20,85 v-40 h60 v40 h-10 v-30 h-40 v30 h-10" fill="white"/>
                       <rect x="35" y="81" width="30" height="4" rx="2" fill="white" opacity="0.6" />
                       <rect x="38" y="77" width="24" height="4" rx="2" fill="white" opacity="0.8" />
@@ -97,7 +94,7 @@
             },
             { id: "big-bedroom",    name: "Big Bedroom",   tempId: "537680", humId: "537681", svg: '<path d="M15,50v40h70V50l-10-10H25L15,50z"/>' },
             { id: "small-bedroom",  name: "Small Bedroom", tempId: "537674", humId: "537675", svg: '<path d="M20,60v30h60V60H20z"/>' },
-            { id: "hot-water",      name: "Hot Water",      tempId: "536155", humId: null,     svg: '<path d="M30,65V30c0-11,9-20,20-20s20,9,20,20v35H30z"/>' },
+            { id: "hot-water",      name: "Hot Water",      tempId: "536155", humId: null,      svg: '<path d="M30,65V30c0-11,9-20,20-20s20,9,20,20v35H30z"/>' },
             { id: "solar",          name: "Solar",          tempId: "539991", humId: "539990", svg: '<circle cx="50" cy="50" r="18"/><line x1="50" y1="10" x2="50" y2="22" stroke="white" stroke-width="4" stroke-linecap="round"/><line x1="50" y1="78" x2="50" y2="90" stroke="white" stroke-width="4" stroke-linecap="round"/><line x1="10" y1="50" x2="22" y2="50" stroke="white" stroke-width="4" stroke-linecap="round"/><line x1="78" y1="50" x2="90" y2="50" stroke="white" stroke-width="4" stroke-linecap="round"/><line x1="21.7" y1="21.7" x2="30.2" y2="30.2" stroke="white" stroke-width="4" stroke-linecap="round"/><line x1="69.8" y1="69.8" x2="78.3" y2="78.3" stroke="white" stroke-width="4" stroke-linecap="round"/><line x1="21.7" y1="78.3" x2="30.2" y2="69.8" stroke="white" stroke-width="4" stroke-linecap="round"/><line x1="69.8" y1="30.2" x2="78.3" y2="21.7" stroke="white" stroke-width="4" stroke-linecap="round"/>' }
         ];
 
@@ -116,7 +113,6 @@
             const start = times.sunrise;
             const end = times.sunset;
 
-            // Update Solar card glow
             const solarCard = document.querySelector('.room-solar');
             if (solarCard) {
                 if (now >= start && now <= end) solarCard.classList.add('solar-active');
@@ -196,11 +192,16 @@
                     const cur1 = dataMap[room.tempId];
                     if (!isNaN(cur1)) {
                         document.getElementById(`t-val-${room.tempId}`).innerText = room.id === "solar" ? cur1.toFixed(2) : cur1.toFixed(1);
+                        
                         if (room.id === "solar") {
                             updateGauge(`t-arc-${room.tempId}`, getSunProgress(), 0, 100, () => '#f1c40f');
                         } else {
+                            // SENSITIVE RANGE FOR ROOMS
+                            const minT = room.id === "hot-water" ? 10 : 15;
+                            const maxT = room.id === "hot-water" ? 70 : 30;
                             const colorFn = room.id === "hot-water" ? (t => t < 45 ? '#40c4ff' : '#ff5252') : (t => t < 24 ? '#00e676' : '#ff5252');
-                            updateGauge(`t-arc-${room.tempId}`, cur1, 10, 70, colorFn);
+                            
+                            updateGauge(`t-arc-${room.tempId}`, cur1, minT, maxT, colorFn);
                         }
                     }
 
@@ -211,7 +212,8 @@
                             if (room.id === "solar") {
                                 updateGauge(`h-arc-${room.humId}`, cur2, 0, 3500, () => '#f39c12');
                             } else {
-                                updateGauge(`h-arc-${room.humId}`, cur2, 0, 100, (h => h < 60 ? '#00e676' : '#ff5252'));
+                                // SENSITIVE RANGE FOR HUMIDITY (30% to 70%)
+                                updateGauge(`h-arc-${room.humId}`, cur2, 30, 70, (h => h < 60 ? '#00e676' : '#ff5252'));
                             }
                         }
                     }
