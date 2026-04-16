@@ -14,6 +14,7 @@
             --gauge-track: rgba(255,255,255,0.1); 
             --up-color: #ff5252; --down-color: #40c4ff;
             --hum-up: #40c4ff; --hum-down: #ffb74d;
+            --on-color: #00e676; --off-color: #ff5252;
         }
 
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; padding-bottom: 85px; min-height: 100vh; box-sizing: border-box; overflow-y: auto; }
@@ -37,7 +38,7 @@
         .room-living-room { --card-color: #34495e; }
         .room-big-bedroom { --card-color: #6c5ce7; }
         .room-small-bedroom { --card-color: #e67e22; }
-        .room-hot-water { --card-color: #c0392b; height: 160px !important; }
+        .room-hot-water { --card-color: #c0392b; height: 180px !important; }
         .room-solar { --card-color: #f39c12; height: 140px !important; transition: box-shadow 1s ease; }
         
         .solar-active { box-shadow: 0 0 20px rgba(241, 196, 15, 0.2), 0 12px 30px rgba(0,0,0,0.4); }
@@ -58,19 +59,23 @@
         .num { font-size: 1.8rem; font-weight: 800; color: #fff; letter-spacing: -1px; line-height: 1; text-shadow: 0 1px 10px rgba(0,0,0,0.5); }
         .unit { font-size: 0.6rem; color: var(--subtext-card); font-weight: 700; text-transform: capitalize; margin-top: 5px; display: block; }
         
+        /* Status Indicator Styles */
+        .status-indicator { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 20px; }
+        .led { width: 10px; height: 10px; border-radius: 50%; background: #444; transition: all 0.3s ease; }
+        .led.on { background: var(--on-color); box-shadow: 0 0 10px var(--on-color); }
+        .led.off { background: var(--off-color); box-shadow: 0 0 10px var(--off-color); }
+        .status-text { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+
         #status { position: fixed; bottom: 0; left: 0; right: 0; padding: 22px 0; text-align: center; font-size: 0.65rem; color: var(--subtext-card); font-weight: 700; text-transform: capitalize; letter-spacing: 1.5px; background: linear-gradient(to top, var(--bg) 70%, transparent); z-index: 10; }
         #status span { cursor: pointer; text-decoration: underline; }
         
-        .card:active {
-            transform: scale(0.98);
-            transition: transform 0.1s;
-        }
+        .card:active { transform: scale(0.98); transition: transform 0.1s; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js"></script>
 </head>
 <body>
 
-    <div class="version-tag">v1.2.8</div>
+    <div class="version-tag">v1.3.0</div>
     <div class="container" id="dashboard"></div>
     <div id="status">Checking Key...</div>
 
@@ -94,7 +99,14 @@
             },
             { id: "big-bedroom",    name: "Big Bedroom",   tempId: "537680", humId: "537681", svg: '<path d="M15,50v40h70V50l-10-10H25L15,50z"/>' },
             { id: "small-bedroom",  name: "Small Bedroom", tempId: "537674", humId: "537675", svg: '<path d="M20,60v30h60V60H20z"/>' },
-            { id: "hot-water",      name: "Hot Water",      tempId: "536155", humId: null,      svg: '<path d="M30,65V30c0-11,9-20,20-20s20,9,20,20v35H30z"/>' },
+            { 
+                id: "hot-water",      
+                name: "Hot Water",      
+                tempId: "536155", 
+                humId: null, 
+                statusId: "536147", // Added status feed
+                svg: '<path d="M30,65V30c0-11,9-20,20-20s20,9,20,20v35H30z"/>' 
+            },
             { id: "solar",          name: "Solar",          tempId: "539991", humId: "539990", svg: '<circle cx="50" cy="50" r="18"/><line x1="50" y1="10" x2="50" y2="22" stroke="white" stroke-width="4" stroke-linecap="round"/><line x1="50" y1="78" x2="50" y2="90" stroke="white" stroke-width="4" stroke-linecap="round"/><line x1="10" y1="50" x2="22" y2="50" stroke="white" stroke-width="4" stroke-linecap="round"/><line x1="78" y1="50" x2="90" y2="50" stroke="white" stroke-width="4" stroke-linecap="round"/><line x1="21.7" y1="21.7" x2="30.2" y2="30.2" stroke="white" stroke-width="4" stroke-linecap="round"/><line x1="69.8" y1="69.8" x2="78.3" y2="78.3" stroke="white" stroke-width="4" stroke-linecap="round"/><line x1="21.7" y1="78.3" x2="30.2" y2="69.8" stroke="white" stroke-width="4" stroke-linecap="round"/><line x1="69.8" y1="30.2" x2="78.3" y2="21.7" stroke="white" stroke-width="4" stroke-linecap="round"/>' }
         ];
 
@@ -159,6 +171,11 @@
                                 </div>
                             </div>` : ''}
                         </div>
+                        ${room.statusId ? `
+                        <div class="status-indicator">
+                            <div id="led-${room.statusId}" class="led"></div>
+                            <div id="text-${room.statusId}" class="status-text">...</div>
+                        </div>` : ''}
                     </div>
                 </div>`;
             }).join('');
@@ -178,7 +195,8 @@
                 document.getElementById('status').innerHTML = "No API Key. <span onclick='setApiKey()'>Set Key</span>";
                 return;
             }
-            const ids = rooms.flatMap(r => [r.tempId, r.humId]).filter(id => id !== null);
+            // Include statusId in the fetch list
+            const ids = rooms.flatMap(r => [r.tempId, r.humId, r.statusId]).filter(id => id !== null);
             const emonUrl = `https://emoncms.org/feed/fetch.json?ids=${ids.join(',')}&apikey=${API_KEY}&_=${Date.now()}`;
             const url = `https://corsproxy.io/?${encodeURIComponent(emonUrl)}`;
 
@@ -196,11 +214,9 @@
                         if (room.id === "solar") {
                             updateGauge(`t-arc-${room.tempId}`, getSunProgress(), 0, 100, () => '#f1c40f');
                         } else {
-                            // SENSITIVE RANGE FOR ROOMS
                             const minT = room.id === "hot-water" ? 10 : 15;
                             const maxT = room.id === "hot-water" ? 70 : 30;
                             const colorFn = room.id === "hot-water" ? (t => t < 45 ? '#40c4ff' : '#ff5252') : (t => t < 24 ? '#00e676' : '#ff5252');
-                            
                             updateGauge(`t-arc-${room.tempId}`, cur1, minT, maxT, colorFn);
                         }
                     }
@@ -212,9 +228,21 @@
                             if (room.id === "solar") {
                                 updateGauge(`h-arc-${room.humId}`, cur2, 0, 3500, () => '#f39c12');
                             } else {
-                                // SENSITIVE RANGE FOR HUMIDITY (30% to 70%)
                                 updateGauge(`h-arc-${room.humId}`, cur2, 30, 70, (h => h < 60 ? '#00e676' : '#ff5252'));
                             }
+                        }
+                    }
+
+                    // Update Hot Water status light/text
+                    if (room.statusId) {
+                        const val = dataMap[room.statusId];
+                        const led = document.getElementById(`led-${room.statusId}`);
+                        const txt = document.getElementById(`text-${room.statusId}`);
+                        if (led && txt) {
+                            const isOn = val === 1;
+                            led.className = isOn ? 'led on' : 'led off';
+                            txt.innerText = isOn ? 'Hot Water ON' : 'Hot Water OFF';
+                            txt.style.color = isOn ? 'var(--on-color)' : 'var(--off-color)';
                         }
                     }
                 });
