@@ -44,7 +44,7 @@
 
         .card-illustration { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-5deg); width: 85%; height: auto; opacity: 0.03; pointer-events: none; fill: #fff; z-index: 1; }
         .card-content-wrapper { position: relative; z-index: 2; }
-        .room-name { font-weight: 800; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 25px; color: #fff; display: block; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        .room-name { font-weight: 800; font-size: 0.85rem; text-transform: capitalize; letter-spacing: 3px; margin-bottom: 25px; color: #fff; display: block; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
         
         .gauges-row { display: flex; justify-content: center; align-items: center; gap: 15px; }
         .gauge-box { position: relative; width: 48%; max-width: 170px; }
@@ -56,9 +56,9 @@
         
         .val-display { position: absolute; top: 52%; left: 50%; transform: translate(-50%, 0%); width: 100%; }
         .num { font-size: 1.8rem; font-weight: 800; color: #fff; letter-spacing: -1px; line-height: 1; text-shadow: 0 1px 10px rgba(0,0,0,0.5); }
-        .unit { font-size: 0.6rem; color: var(--subtext-card); font-weight: 700; text-transform: uppercase; margin-top: 5px; display: block; }
+        .unit { font-size: 0.6rem; color: var(--subtext-card); font-weight: 700; text-transform: capitalize; margin-top: 5px; display: block; }
         
-        #status { position: fixed; bottom: 0; left: 0; right: 0; padding: 22px 0; text-align: center; font-size: 0.65rem; color: var(--subtext-card); font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; background: linear-gradient(to top, var(--bg) 70%, transparent); z-index: 10; }
+        #status { position: fixed; bottom: 0; left: 0; right: 0; padding: 22px 0; text-align: center; font-size: 0.65rem; color: var(--subtext-card); font-weight: 700; text-transform: capitalize; letter-spacing: 1.5px; background: linear-gradient(to top, var(--bg) 70%, transparent); z-index: 10; }
         #status span { cursor: pointer; text-decoration: underline; }
         
         .card:active {
@@ -70,7 +70,7 @@
 </head>
 <body>
 
-    <div class="version-tag">v1.2.7</div>
+    <div class="version-tag">v1.2.8</div>
     <div class="container" id="dashboard"></div>
     <div id="status">Checking Key...</div>
 
