@@ -87,7 +87,7 @@
 </head>
 <body>
 
-    <div class="version-tag">v1.3.9</div>
+    <div class="version-tag">v1.4.0</div>
     <div class="container" id="dashboard"></div>
     <div id="status">Checking Key...</div>
 
@@ -229,19 +229,14 @@
         }
 
         async function fetchEmoncmsData(targetUrl) {
-            // Direct fetch (Primary)
-            try {
-                const response = await fetch(targetUrl);
-                if (response.ok) return await response.json();
-            } catch (err) {
-                console.warn("Direct CORS fetch failed, attempting proxy fallback...", err);
-            }
-
-            // CORS Proxy Fallback (Backup)
-            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
-            const proxyResponse = await fetch(proxyUrl);
-            if (!proxyResponse.ok) throw new Error(`HTTP Error ${proxyResponse.status}`);
-            return await proxyResponse.json();
+            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+            const response = await fetch(proxyUrl);
+            if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
+            
+            const wrapper = await response.json();
+            if (!wrapper.contents) throw new Error("Empty proxy response");
+            
+            return JSON.parse(wrapper.contents);
         }
 
         async function updateData() {
