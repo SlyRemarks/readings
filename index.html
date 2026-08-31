@@ -72,14 +72,38 @@
         #status span { cursor: pointer; text-decoration: underline; }
         
         .card:active { transform: scale(0.98); transition: transform 0.1s; }
+
+        /* Custom Modal Styles */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+        .modal-overlay.active { display: flex; }
+        .modal-card { background: #252525; border-radius: 20px; padding: 25px; width: 100%; max-width: 320px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 40px rgba(0,0,0,0.6); text-align: center; }
+        .modal-card h3 { margin: 0 0 15px 0; color: #fff; font-size: 1.1rem; }
+        .modal-card input { width: 100%; padding: 12px; margin-bottom: 15px; background: #121212; border: 1px solid #444; border-radius: 10px; color: #fff; box-sizing: border-box; font-size: 0.9rem; text-align: center; }
+        .modal-card input:focus { outline: none; border-color: #40c4ff; }
+        .modal-buttons { display: flex; gap: 10px; }
+        .modal-btn { flex: 1; padding: 12px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; }
+        .modal-btn.save { background: #00e676; color: #000; }
+        .modal-btn.cancel { background: #333; color: #fff; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js"></script>
 </head>
 <body>
 
-    <div class="version-tag">v1.3.5</div>
+    <div class="version-tag">v1.3.6</div>
     <div class="container" id="dashboard"></div>
     <div id="status">Checking Key...</div>
+
+    <!-- API Key Input Modal -->
+    <div class="modal-overlay" id="apiModal">
+        <div class="modal-card">
+            <h3>EmonCMS API Key</h3>
+            <input type="text" id="apiKeyInput" placeholder="Paste API Key here..." autocomplete="off">
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" onclick="closeApiKeyModal()">Cancel</button>
+                <button class="modal-btn save" onclick="saveApiKey()">Save</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         let API_KEY = "";
@@ -118,17 +142,25 @@
             { id: "solar",          name: "Solar",          tempId: "539991", humId: "539990", svg: '<circle cx="50" cy="50" r="18"/><line x1="50" y1="10" x2="50" y2="22" stroke="white" stroke-width="4" stroke-linecap="round"/><line x1="50" y1="78" x2="50" y2="90" stroke="white" stroke-width="4" stroke-linecap="round"/><line x1="10" y1="50" x2="22" y2="50" stroke="white" stroke-width="4" stroke-linecap="round"/><line x1="78" y1="50" x2="90" y2="50" stroke="white" stroke-width="4" stroke-linecap="round"/><line x1="21.7" y1="21.7" x2="30.2" y2="30.2" stroke="white" stroke-width="4" stroke-linecap="round"/><line x1="69.8" y1="69.8" x2="78.3" y2="78.3" stroke="white" stroke-width="4" stroke-linecap="round"/><line x1="21.7" y1="78.3" x2="30.2" y2="69.8" stroke="white" stroke-width="4" stroke-linecap="round"/><line x1="69.8" y1="30.2" x2="78.3" y2="21.7" stroke="white" stroke-width="4" stroke-linecap="round"/>' }
         ];
 
-        function setApiKey() {
-            const newKey = prompt("Enter EmonCMS API Key:", API_KEY || "");
-            if (newKey) {
-                try {
-                    localStorage.setItem('emoncms_apikey', newKey);
-                } catch (e) {
-                    console.warn("Could not save to localStorage:", e);
-                }
-                API_KEY = newKey;
-                updateData();
+        function openApiKeyModal() {
+            document.getElementById('apiKeyInput').value = API_KEY || "";
+            document.getElementById('apiModal').classList.add('active');
+        }
+
+        function closeApiKeyModal() {
+            document.getElementById('apiModal').classList.remove('active');
+        }
+
+        function saveApiKey() {
+            const val = document.getElementById('apiKeyInput').value.trim();
+            API_KEY = val;
+            try {
+                localStorage.setItem('emoncms_apikey', API_KEY);
+            } catch (e) {
+                console.warn("Could not write to localStorage:", e);
             }
+            closeApiKeyModal();
+            updateData();
         }
 
         function getSunProgress() {
@@ -204,11 +236,10 @@
 
         async function updateData() {
             if (!API_KEY) {
-                document.getElementById('status').innerHTML = "No API Key. <span onclick='setApiKey()'>Set Key</span>";
+                document.getElementById('status').innerHTML = "No API Key. <span onclick='openApiKeyModal()'>Set Key</span>";
                 return;
             }
 
-            // Filter out null/undefined IDs cleanly to avoid invalid comma structures
             const ids = rooms
                 .flatMap(r => [r.tempId, r.humId, r.statusId])
                 .filter(id => Boolean(id));
@@ -274,7 +305,7 @@
             if (!lastSuccessTime) return;
             const diff = Math.floor((Date.now() - lastSuccessTime) / 1000);
             let text = diff < 60 ? `${diff}s ago` : `${Math.floor(diff/60)}m ago`;
-            document.getElementById('status').innerHTML = `Updated ${text} | <span onclick='setApiKey()'>Settings</span>`;
+            document.getElementById('status').innerHTML = `Updated ${text} | <span onclick='openApiKeyModal()'>Settings</span>`;
         }
 
         createCards();
