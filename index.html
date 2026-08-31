@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#121212">
     <title>Climate & Energy Dashboard</title>
     <style>
@@ -33,7 +35,6 @@
 
         .container { display: grid; grid-template-columns: 1fr; gap: 15px; margin-top: 10px; }
         
-        /* Reduced padding from 35px to 25px to pull content up */
         .card { position: relative; background-color: var(--card-color, var(--card-default)); background-image: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.3) 100%); height: 120px; padding: 25px 20px; border-radius: 32px; box-shadow: 0 12px 30px rgba(0,0,0,0.4); text-align: center; color: var(--text-card); overflow: hidden; border: 1px solid rgba(255,255,255,0.05); }
         
         .room-living-room { --card-color: #34495e; }
@@ -47,7 +48,6 @@
         .card-illustration { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-5deg); width: 85%; height: auto; opacity: 0.03; pointer-events: none; fill: #fff; z-index: 1; }
         .card-content-wrapper { position: relative; z-index: 2; }
         
-        /* Tightened margin-bottom for the room name */
         .room-name { font-weight: 800; font-size: 1.1rem; text-transform: capitalize; letter-spacing: 3px; margin-bottom: 5px; color: #fff; display: block; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
         
         .gauges-row { display: flex; justify-content: center; align-items: center; gap: 15px; }
@@ -76,7 +76,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js"></script>
 </head>
 <body>
-   <div class="version-tag">v1.3.4</div>
+
+    <div class="version-tag">v1.3.5</div>
     <div class="container" id="dashboard"></div>
     <div id="status">Checking Key...</div>
 
@@ -88,8 +89,8 @@
             console.warn("LocalStorage unreadable:", e);
         }
 
-        const LAT = 51.5072; 
-        const LON = -0.1276; 
+        const LAT = 53.1396; 
+        const LON = -4.2739; 
 
         let lastSuccessTime = null;
 
@@ -123,7 +124,7 @@
                 try {
                     localStorage.setItem('emoncms_apikey', newKey);
                 } catch (e) {
-                    console.warn("Could not save API key to LocalStorage:", e);
+                    console.warn("Could not save to localStorage:", e);
                 }
                 API_KEY = newKey;
                 updateData();
@@ -206,14 +207,18 @@
                 document.getElementById('status').innerHTML = "No API Key. <span onclick='setApiKey()'>Set Key</span>";
                 return;
             }
-            const ids = rooms.flatMap(r => [r.tempId, r.humId, r.statusId]).filter(id => id !== null);
-            const emonUrl = `https://emoncms.org/feed/fetch.json?ids=${ids.join(',')}&apikey=${API_KEY}&_=${Date.now()}`;
-            const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(emonUrl)}`;
+
+            // Filter out null/undefined IDs cleanly to avoid invalid comma structures
+            const ids = rooms
+                .flatMap(r => [r.tempId, r.humId, r.statusId])
+                .filter(id => Boolean(id));
+
+            const url = `https://emoncms.org/feed/fetch.json?ids=${ids.join(',')}&apikey=${API_KEY}&_=${Date.now()}`;
 
             try {
                 const response = await fetch(url);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                
+
                 const dataArray = await response.json();
                 const dataMap = {};
                 ids.forEach((id, index) => { dataMap[id] = parseFloat(dataArray[index]); });
