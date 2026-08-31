@@ -45,7 +45,6 @@
         
         .solar-active { box-shadow: 0 0 20px rgba(241, 196, 15, 0.2), 0 12px 30px rgba(0,0,0,0.4); }
 
-        .card-illustration { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-5deg); width: 85%; height: auto; opacity: 0.03; pointer-events: none; fill: #fff; z-index: 1; }
         .card-content-wrapper { position: relative; z-index: 2; }
         
         .room-name { font-weight: 800; font-size: 1.1rem; text-transform: capitalize; letter-spacing: 3px; margin-bottom: 5px; color: #fff; display: block; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
@@ -88,7 +87,7 @@
 </head>
 <body>
 
-    <div class="version-tag">v1.3.8</div>
+    <div class="version-tag">v1.3.9</div>
     <div class="container" id="dashboard"></div>
     <div id="status">Checking Key...</div>
 
@@ -122,23 +121,18 @@
                 id: "living-room",   
                 name: "Living Room",   
                 tempId: "537676", 
-                humId: "537677", 
-                svg: `<path d="M15,90 h70 v-5 h-70 v5 M20,85 v-40 h60 v40 h-10 v-30 h-40 v30 h-10" fill="white"/>
-                      <rect x="35" y="81" width="30" height="4" rx="2" fill="white" opacity="0.6" />
-                      <rect x="38" y="77" width="24" height="4" rx="2" fill="white" opacity="0.8" />
-                      <path d="M50,61 c-6,8 3,18 0,25 c6,0 8-6 0-25" fill="#ff5252" opacity="0.9"></path>` 
+                humId: "537677"
             },
-            { id: "big-bedroom",    name: "Big Bedroom",   tempId: "537680", humId: "537681", svg: '<path d="M15,50v40h70V50l-10-10H25L15,50z"/>' },
-            { id: "small-bedroom",  name: "Small Bedroom", tempId: "537674", humId: "537675", svg: '<path d="M20,60v30h60V60H20z"/>' },
+            { id: "big-bedroom",    name: "Big Bedroom",   tempId: "537680", humId: "537681" },
+            { id: "small-bedroom",  name: "Small Bedroom", tempId: "537674", humId: "537675" },
             { 
                 id: "hot-water",      
                 name: "Hot Water",      
                 tempId: "536155", 
                 humId: null, 
-                statusId: "536147", 
-                svg: '<path d="M30,65V30c0-11,9-20,20-20s20,9,20,20v35H30z"/>' 
+                statusId: "536147"
             },
-            { id: "solar",          name: "Solar",          tempId: "539991", humId: "539990", svg: '<circle cx="50" cy="50" r="18"/><line x1="50" y1="10" x2="50" y2="22" stroke="white" stroke-width="4" stroke-linecap="round"/><line x1="50" y1="78" x2="50" y2="90" stroke="white" stroke-width="4" stroke-linecap="round"/><line x1="10" y1="50" x2="22" y2="50" stroke="white" stroke-width="4" stroke-linecap="round"/><line x1="78" y1="50" x2="90" y2="50" stroke="white" stroke-width="4" stroke-linecap="round"/><line x1="21.7" y1="21.7" x2="30.2" y2="30.2" stroke="white" stroke-width="4" stroke-linecap="round"/><line x1="69.8" y1="69.8" x2="78.3" y2="78.3" stroke="white" stroke-width="4" stroke-linecap="round"/><line x1="21.7" y1="78.3" x2="30.2" y2="69.8" stroke="white" stroke-width="4" stroke-linecap="round"/><line x1="69.8" y1="30.2" x2="78.3" y2="21.7" stroke="white" stroke-width="4" stroke-linecap="round"/>' }
+            { id: "solar",          name: "Solar",          tempId: "539991", humId: "539990" }
         ];
 
         function openApiKeyModal() {
@@ -234,36 +228,20 @@
             el.style.stroke = colorFn(val);
         }
 
-        function fetchJsonp(url) {
-            return new Promise((resolve, reject) => {
-                const callbackName = 'emoncms_cb_' + Math.round(100000 * Math.random());
-                const script = document.createElement('script');
-                
-                const timer = setTimeout(() => {
-                    cleanup();
-                    reject(new Error('JSONP connection timed out'));
-                }, 8000);
+        async function fetchEmoncmsData(targetUrl) {
+            // Direct fetch (Primary)
+            try {
+                const response = await fetch(targetUrl);
+                if (response.ok) return await response.json();
+            } catch (err) {
+                console.warn("Direct CORS fetch failed, attempting proxy fallback...", err);
+            }
 
-                function cleanup() {
-                    clearTimeout(timer);
-                    delete window[callbackName];
-                    if (document.body.contains(script)) document.body.removeChild(script);
-                }
-
-                window[callbackName] = function(data) {
-                    cleanup();
-                    resolve(data);
-                };
-
-                script.onerror = function() {
-                    cleanup();
-                    reject(new Error('Failed to load JSONP script'));
-                };
-
-                const delimiter = url.indexOf('?') >= 0 ? '&' : '?';
-                script.src = `${url}${delimiter}callback=${callbackName}`;
-                document.body.appendChild(script);
-            });
+            // CORS Proxy Fallback (Backup)
+            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+            const proxyResponse = await fetch(proxyUrl);
+            if (!proxyResponse.ok) throw new Error(`HTTP Error ${proxyResponse.status}`);
+            return await proxyResponse.json();
         }
 
         async function updateData() {
@@ -276,10 +254,10 @@
                 .flatMap(r => [r.tempId, r.humId, r.statusId])
                 .filter(id => Boolean(id));
 
-            const url = `https://emoncms.org/feed/fetch.json?ids=${ids.join(',')}&apikey=${API_KEY}&_=${Date.now()}`;
+            const url = `https://emoncms.org/feed/fetch.json?ids=${ids.join(',')}&apikey=${API_KEY}`;
 
             try {
-                const dataArray = await fetchJsonp(url);
+                const dataArray = await fetchEmoncmsData(url);
                 const dataMap = {};
                 ids.forEach((id, index) => { dataMap[id] = parseFloat(dataArray[index]); });
 
