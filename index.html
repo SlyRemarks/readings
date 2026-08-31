@@ -69,12 +69,11 @@
         .status-text { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
 
         #status { position: fixed; bottom: 0; left: 0; right: 0; padding: 22px 0; text-align: center; font-size: 0.65rem; color: var(--subtext-card); font-weight: 700; text-transform: capitalize; letter-spacing: 1.5px; background: linear-gradient(to top, var(--bg) 70%, transparent); z-index: 10; }
-        #status span { cursor: pointer; text-decoration: underline; }
+        #status span { cursor: pointer; text-decoration: underline; color: #40c4ff; }
         
         .card:active { transform: scale(0.98); transition: transform 0.1s; }
 
-        /* Custom Modal Styles */
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
         .modal-overlay.active { display: flex; }
         .modal-card { background: #252525; border-radius: 20px; padding: 25px; width: 100%; max-width: 320px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 40px rgba(0,0,0,0.6); text-align: center; }
         .modal-card h3 { margin: 0 0 15px 0; color: #fff; font-size: 1.1rem; }
@@ -89,15 +88,14 @@
 </head>
 <body>
 
-    <div class="version-tag">v1.3.7</div>
+    <div class="version-tag">v1.3.8</div>
     <div class="container" id="dashboard"></div>
     <div id="status">Checking Key...</div>
 
-    <!-- API Key Input Modal -->
     <div class="modal-overlay" id="apiModal">
         <div class="modal-card">
             <h3>EmonCMS API Key</h3>
-            <input type="text" id="apiKeyInput" placeholder="Paste API Key here..." autocomplete="off">
+            <input type="text" id="apiKeyInput" placeholder="Paste Read API Key..." autocomplete="off">
             <div class="modal-buttons">
                 <button class="modal-btn cancel" onclick="closeApiKeyModal()">Cancel</button>
                 <button class="modal-btn save" onclick="saveApiKey()">Save</button>
@@ -110,13 +108,14 @@
         try {
             API_KEY = localStorage.getItem('emoncms_apikey') || "";
         } catch (e) {
-            console.warn("LocalStorage unreadable:", e);
+            console.warn("LocalStorage error:", e);
         }
 
         const LAT = 53.1396; 
         const LON = -4.2739; 
 
         let lastSuccessTime = null;
+        let fetchError = false;
 
         const rooms = [
             { 
@@ -157,9 +156,10 @@
             try {
                 localStorage.setItem('emoncms_apikey', API_KEY);
             } catch (e) {
-                console.warn("Could not write to localStorage:", e);
+                console.warn("Could not save API key:", e);
             }
             closeApiKeyModal();
+            fetchError = false;
             updateData();
         }
 
@@ -234,22 +234,30 @@
             el.style.stroke = colorFn(val);
         }
 
-        // Helper to fetch data via JSONP script injection to bypass CORS limits
         function fetchJsonp(url) {
             return new Promise((resolve, reject) => {
                 const callbackName = 'emoncms_cb_' + Math.round(100000 * Math.random());
                 const script = document.createElement('script');
                 
-                window[callbackName] = function(data) {
+                const timer = setTimeout(() => {
+                    cleanup();
+                    reject(new Error('JSONP connection timed out'));
+                }, 8000);
+
+                function cleanup() {
+                    clearTimeout(timer);
                     delete window[callbackName];
-                    document.body.removeChild(script);
+                    if (document.body.contains(script)) document.body.removeChild(script);
+                }
+
+                window[callbackName] = function(data) {
+                    cleanup();
                     resolve(data);
                 };
 
                 script.onerror = function() {
-                    delete window[callbackName];
-                    if (document.body.contains(script)) document.body.removeChild(script);
-                    reject(new Error('Network error or invalid JSONP response'));
+                    cleanup();
+                    reject(new Error('Failed to load JSONP script'));
                 };
 
                 const delimiter = url.indexOf('?') >= 0 ? '&' : '?';
@@ -260,7 +268,7 @@
 
         async function updateData() {
             if (!API_KEY) {
-                document.getElementById('status').innerHTML = "No API Key. <span onclick='openApiKeyModal()'>Set Key</span>";
+                document.getElementById('status').innerHTML = "No API Key configured. <span onclick='openApiKeyModal()'>Set API Key</span>";
                 return;
             }
 
@@ -314,16 +322,27 @@
                         }
                     }
                 });
+                
+                fetchError = false;
                 lastSuccessTime = Date.now();
                 updateTimeAgo();
             } catch (e) { 
                 console.error("Dashboard sync error:", e);
-                document.getElementById('status').innerHTML = `Sync Error: ${e.message} | <span onclick='updateData()'>Retry</span>`; 
+                fetchError = true;
+                document.getElementById('status').innerHTML = `Sync Error | <span onclick='openApiKeyModal()'>Check Key</span> | <span onclick='updateData()'>Retry</span>`; 
             }
         }
 
         function updateTimeAgo() {
-            if (!lastSuccessTime) return;
+            if (!API_KEY) {
+                document.getElementById('status').innerHTML = "No API Key configured. <span onclick='openApiKeyModal()'>Set API Key</span>";
+                return;
+            }
+            if (fetchError) return;
+            if (!lastSuccessTime) {
+                document.getElementById('status').innerHTML = "Connecting to EmonCMS... | <span onclick='openApiKeyModal()'>Settings</span>";
+                return;
+            }
             const diff = Math.floor((Date.now() - lastSuccessTime) / 1000);
             let text = diff < 60 ? `${diff}s ago` : `${Math.floor(diff/60)}m ago`;
             document.getElementById('status').innerHTML = `Updated ${text} | <span onclick='openApiKeyModal()'>Settings</span>`;
