@@ -76,13 +76,18 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js"></script>
 </head>
 <body>
-
-    <div class="version-tag">v1.3.3</div>
+   <div class="version-tag">v1.3.4</div>
     <div class="container" id="dashboard"></div>
     <div id="status">Checking Key...</div>
 
     <script>
-        let API_KEY = localStorage.getItem('emoncms_apikey');
+        let API_KEY = "";
+        try {
+            API_KEY = localStorage.getItem('emoncms_apikey') || "";
+        } catch (e) {
+            console.warn("LocalStorage unreadable:", e);
+        }
+
         const LAT = 51.5072; 
         const LON = -0.1276; 
 
@@ -115,13 +120,18 @@
         function setApiKey() {
             const newKey = prompt("Enter EmonCMS API Key:", API_KEY || "");
             if (newKey) {
-                localStorage.setItem('emoncms_apikey', newKey);
+                try {
+                    localStorage.setItem('emoncms_apikey', newKey);
+                } catch (e) {
+                    console.warn("Could not save API key to LocalStorage:", e);
+                }
                 API_KEY = newKey;
                 updateData();
             }
         }
 
         function getSunProgress() {
+            if (typeof SunCalc === 'undefined') return 50;
             const times = SunCalc.getTimes(new Date(), LAT, LON);
             const now = new Date();
             const start = times.sunrise;
@@ -198,10 +208,12 @@
             }
             const ids = rooms.flatMap(r => [r.tempId, r.humId, r.statusId]).filter(id => id !== null);
             const emonUrl = `https://emoncms.org/feed/fetch.json?ids=${ids.join(',')}&apikey=${API_KEY}&_=${Date.now()}`;
-            const url = `https://corsproxy.io/?${encodeURIComponent(emonUrl)}`;
+            const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(emonUrl)}`;
 
             try {
                 const response = await fetch(url);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
                 const dataArray = await response.json();
                 const dataMap = {};
                 ids.forEach((id, index) => { dataMap[id] = parseFloat(dataArray[index]); });
@@ -248,7 +260,8 @@
                 lastSuccessTime = Date.now();
                 updateTimeAgo();
             } catch (e) { 
-                document.getElementById('status').innerText = "Sync Error"; 
+                console.error("Dashboard sync error:", e);
+                document.getElementById('status').innerHTML = `Sync Error: ${e.message} | <span onclick='updateData()'>Retry</span>`; 
             }
         }
 
