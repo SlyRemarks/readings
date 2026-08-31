@@ -1,330 +1,229 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <link rel="manifest" href="manifest.json">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#121212">
-    <title>Climate & Energy Dashboard</title>
-    <style>
-        :root { 
-            --bg: #121212; --card-default: #1e1e1e; 
-            --text-card: #e0e0e0; --subtext-card: rgba(255,255,255,0.7);
-            --gauge-track: rgba(255,255,255,0.1); 
-            --up-color: #ff5252; --down-color: #40c4ff;
-            --hum-up: #40c4ff; --hum-down: #ffb74d;
-            --on-color: #00e676; --off-color: #ff5252;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Emoncms Energy Dashboard</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --error: #f87171;
+      --border: #334155;
+    }
 
-        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; padding-bottom: 85px; min-height: 100vh; box-sizing: border-box; overflow-y: auto; }
-        
-        .version-tag {
-            position: absolute;
-            top: 10px;
-            right: 15px;
-            font-size: 0.6rem;
-            color: rgba(255,255,255,0.2);
-            font-weight: 700;
-            letter-spacing: 1px;
-            pointer-events: none;
-            z-index: 100;
-        }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
 
-        .container { display: grid; grid-template-columns: 1fr; gap: 15px; margin-top: 10px; }
-        
-        .card { position: relative; background-color: var(--card-color, var(--card-default)); background-image: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.3) 100%); height: 120px; padding: 25px 20px; border-radius: 32px; box-shadow: 0 12px 30px rgba(0,0,0,0.4); text-align: center; color: var(--text-card); overflow: hidden; border: 1px solid rgba(255,255,255,0.05); }
-        
-        .room-living-room { --card-color: #34495e; }
-        .room-big-bedroom { --card-color: #6c5ce7; }
-        .room-small-bedroom { --card-color: #e67e22; }
-        .room-hot-water { --card-color: #c0392b; height: 170px !important; }
-        .room-solar { --card-color: #f39c12; height: 140px !important; transition: box-shadow 1s ease; }
-        
-        .solar-active { box-shadow: 0 0 20px rgba(241, 196, 15, 0.2), 0 12px 30px rgba(0,0,0,0.4); }
+    .container {
+      width: 100%;
+      max-width: 800px;
+    }
 
-        .card-content-wrapper { position: relative; z-index: 2; }
-        
-        .room-name { font-weight: 800; font-size: 1.1rem; text-transform: capitalize; letter-spacing: 3px; margin-bottom: 5px; color: #fff; display: block; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
-        
-        .gauges-row { display: flex; justify-content: center; align-items: center; gap: 15px; }
-        .gauge-box { position: relative; width: 48%; max-width: 170px; }
-        .gauge-box.solo { width: 65%; max-width: 210px; }
-        
-        svg { width: 100%; height: auto; display: block; }
-        .gauge-bg { fill: none; stroke: var(--gauge-track); stroke-width: 10; stroke-linecap: round; }
-        .gauge-progress { fill: none; stroke-width: 10; stroke-linecap: round; stroke-dasharray: 110; stroke-dashoffset: 110; transition: stroke-dashoffset 1s ease-out, stroke 0.5s ease; }
-        
-        .val-display { position: absolute; top: 52%; left: 50%; transform: translate(-50%, 0%); width: 100%; }
-        .num { font-size: 1.8rem; font-weight: 800; color: #fff; letter-spacing: -1px; line-height: 1; text-shadow: 0 1px 10px rgba(0,0,0,0.5); }
-        .unit { font-size: 0.6rem; color: var(--subtext-card); font-weight: 700; text-transform: capitalize; margin-top: 5px; display: block; }
-        
-        .status-indicator { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: -8px; }
-        .led { width: 10px; height: 10px; border-radius: 50%; background: #444; transition: all 0.3s ease; }
-        .led.on { background: var(--on-color); box-shadow: 0 0 10px var(--on-color); }
-        .led.off { background: var(--off-color); box-shadow: 0 0 10px var(--off-color); }
-        .status-text { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
 
-        #status { position: fixed; bottom: 0; left: 0; right: 0; padding: 22px 0; text-align: center; font-size: 0.65rem; color: var(--subtext-card); font-weight: 700; text-transform: capitalize; letter-spacing: 1.5px; background: linear-gradient(to top, var(--bg) 70%, transparent); z-index: 10; }
-        #status span { cursor: pointer; text-decoration: underline; color: #40c4ff; }
-        
-        .card:active { transform: scale(0.98); transition: transform 0.1s; }
+    .form-group {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
 
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
-        .modal-overlay.active { display: flex; }
-        .modal-card { background: #252525; border-radius: 20px; padding: 25px; width: 100%; max-width: 320px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 40px rgba(0,0,0,0.6); text-align: center; }
-        .modal-card h3 { margin: 0 0 15px 0; color: #fff; font-size: 1.1rem; }
-        .modal-card input { width: 100%; padding: 12px; margin-bottom: 15px; background: #121212; border: 1px solid #444; border-radius: 10px; color: #fff; box-sizing: border-box; font-size: 0.9rem; text-align: center; }
-        .modal-card input:focus { outline: none; border-color: #40c4ff; }
-        .modal-buttons { display: flex; gap: 10px; }
-        .modal-btn { flex: 1; padding: 12px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; }
-        .modal-btn.save { background: #00e676; color: #000; }
-        .modal-btn.cancel { background: #333; color: #fff; }
-    </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js"></script>
+    input[type="password"], input[type="text"] {
+      flex: 1;
+      padding: 0.75rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+    }
+
+    button {
+      padding: 0.75rem 1.5rem;
+      background: var(--accent);
+      color: #000;
+      font-weight: 600;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    button:hover { opacity: 0.9; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .status {
+      font-size: 0.875rem;
+      color: var(--muted);
+      margin-top: 0.5rem;
+    }
+
+    .status.error { color: var(--error); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+    }
+
+    .metric {
+      background: var(--bg);
+      padding: 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    .metric-id { font-size: 0.75rem; color: var(--muted); }
+    .metric-val { font-size: 1.5rem; font-weight: 700; color: var(--accent); margin-top: 0.25rem; }
+  </style>
 </head>
 <body>
 
-    <div class="version-tag">v1.4.0</div>
-    <div class="container" id="dashboard"></div>
-    <div id="status">Checking Key...</div>
+<div class="container">
+  <h2>Energy Dashboard</h2>
 
-    <div class="modal-overlay" id="apiModal">
-        <div class="modal-card">
-            <h3>EmonCMS API Key</h3>
-            <input type="text" id="apiKeyInput" placeholder="Paste Read API Key..." autocomplete="off">
-            <div class="modal-buttons">
-                <button class="modal-btn cancel" onclick="closeApiKeyModal()">Cancel</button>
-                <button class="modal-btn save" onclick="saveApiKey()">Save</button>
-            </div>
-        </div>
+  <div class="card">
+    <div class="form-group">
+      <input type="password" id="apiKeyInput" placeholder="Enter Emoncms Read API Key" />
+      <button id="saveBtn" onclick="saveApiKey()">Sync Dashboard</button>
     </div>
+    <div id="statusMsg" class="status">Idle</div>
+  </div>
 
-    <script>
-        let API_KEY = "";
-        try {
-            API_KEY = localStorage.getItem('emoncms_apikey') || "";
-        } catch (e) {
-            console.warn("LocalStorage error:", e);
-        }
+  <div class="card">
+    <h3>Live Feed Readings</h3>
+    <div id="readingsGrid" class="grid">
+      <div class="status">No data fetched yet.</div>
+    </div>
+  </div>
+</div>
 
-        const LAT = 53.1396; 
-        const LON = -4.2739; 
+<script>
+  // All 10 Target Feed IDs
+  const FEED_IDS = [537676, 537677, 537680, 537681, 537674, 537675, 536155, 536147, 539991, 539990];
 
-        let lastSuccessTime = null;
-        let fetchError = false;
+  document.addEventListener('DOMContentLoaded', () => {
+    const savedKey = localStorage.getItem('emoncms_apikey');
+    if (savedKey) {
+      document.getElementById('apiKeyInput').value = savedKey;
+      updateData();
+    }
+  });
 
-        const rooms = [
-            { 
-                id: "living-room",   
-                name: "Living Room",   
-                tempId: "537676", 
-                humId: "537677"
-            },
-            { id: "big-bedroom",    name: "Big Bedroom",   tempId: "537680", humId: "537681" },
-            { id: "small-bedroom",  name: "Small Bedroom", tempId: "537674", humId: "537675" },
-            { 
-                id: "hot-water",      
-                name: "Hot Water",      
-                tempId: "536155", 
-                humId: null, 
-                statusId: "536147"
-            },
-            { id: "solar",          name: "Solar",          tempId: "539991", humId: "539990" }
-        ];
+  function saveApiKey() {
+    const key = document.getElementById('apiKeyInput').value.trim();
+    if (!key) return setStatus('Please enter a valid API key.', true);
+    localStorage.setItem('emoncms_apikey', key);
+    updateData();
+  }
 
-        function openApiKeyModal() {
-            document.getElementById('apiKeyInput').value = API_KEY || "";
-            document.getElementById('apiModal').classList.add('active');
-        }
+  function setStatus(msg, isError = false) {
+    const el = document.getElementById('statusMsg');
+    el.textContent = msg;
+    el.className = `status ${isError ? 'error' : ''}`;
+  }
 
-        function closeApiKeyModal() {
-            document.getElementById('apiModal').classList.remove('active');
-        }
+  // Fetch helper with explicit timeout using AbortController
+  async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeoutMs);
 
-        function saveApiKey() {
-            const val = document.getElementById('apiKeyInput').value.trim();
-            API_KEY = val;
-            try {
-                localStorage.setItem('emoncms_apikey', API_KEY);
-            } catch (e) {
-                console.warn("Could not save API key:", e);
-            }
-            closeApiKeyModal();
-            fetchError = false;
-            updateData();
-        }
+    try {
+      const response = await fetch(url, { ...options, signal: controller.signal });
+      clearTimeout(id);
+      return response;
+    } catch (err) {
+      clearTimeout(id);
+      throw err;
+    }
+  }
 
-        function getSunProgress() {
-            if (typeof SunCalc === 'undefined') return 50;
-            const times = SunCalc.getTimes(new Date(), LAT, LON);
-            const now = new Date();
-            const start = times.sunrise;
-            const end = times.sunset;
+  // Fetch with exponential backoff retry for network/timeout errors
+  async function fetchWithRetry(url, retries = 3, delay = 1000) {
+    for (let i = 0; i < retries; i++) {
+      try {
+        const res = await fetchWithTimeout(url);
+        if (res.status === 408) throw new Error('HTTP 408 Timeout');
+        if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+        return await res.json();
+      } catch (err) {
+        if (i === retries - 1) throw err;
+        await new Promise(r => setTimeout(r, delay * Math.pow(2, i)));
+      }
+    }
+  }
 
-            const solarCard = document.querySelector('.room-solar');
-            if (solarCard) {
-                if (now >= start && now <= end) solarCard.classList.add('solar-active');
-                else solarCard.classList.remove('solar-active');
-            }
+  // Batch requests into smaller chunks (5 feeds max per call)
+  async function fetchEmoncmsData(apiKey) {
+    const chunkSize = 5;
+    const chunks = [];
+    
+    for (let i = 0; i < FEED_IDS.length; i += chunkSize) {
+      chunks.push(FEED_IDS.slice(i, i + chunkSize));
+    }
 
-            if (now < start) return 0;
-            if (now > end) return 100;
+    const fetchPromises = chunks.map(chunk => {
+      const url = `https://emoncms.org/feed/fetch.json?ids=${chunk.join(',')}&apikey=${apiKey}`;
+      return fetchWithRetry(url);
+    });
 
-            const totalDaylight = end - start;
-            const elapsed = now - start;
-            return (elapsed / totalDaylight) * 100;
-        }
+    const results = await Promise.all(fetchPromises);
+    
+    // Combine chunked JSON responses into a single object map
+    return Object.assign({}, ...results);
+  }
 
-        function createCards() {
-            document.getElementById('dashboard').innerHTML = rooms.map(room => {
-                const label1 = room.id === "solar" ? "Total kWh" : "Temp °C";
-                const label2 = room.id === "solar" ? "Watts" : "Hum %";
-                return `
-                <div class="card room-${room.id}">
-                    <div class="card-content-wrapper">
-                        <span class="room-name">${room.name}</span>
-                        <div class="gauges-row">
-                            <div class="gauge-box ${!room.humId ? 'solo' : ''}">
-                                <svg viewBox="0 0 100 70">
-                                    <path class="gauge-bg" d="M 15 50 A 35 35 0 0 1 85 50" />
-                                    <path class="gauge-progress" id="t-arc-${room.tempId}" d="M 15 50 A 35 35 0 0 1 85 50" />
-                                </svg>
-                                <div class="val-display">
-                                    <span class="num" id="t-container-${room.tempId}"><span id="t-val-${room.tempId}">--</span></span>
-                                    <span class="unit">${label1}</span>
-                                </div>
-                            </div>
-                            ${room.humId ? `
-                            <div class="gauge-box">
-                                <svg viewBox="0 0 100 70">
-                                    <path class="gauge-bg" d="M 15 50 A 35 35 0 0 1 85 50" />
-                                    <path class="gauge-progress" id="h-arc-${room.humId}" d="M 15 50 A 35 35 0 0 1 85 50" />
-                                </svg>
-                                <div class="val-display">
-                                    <span class="num" id="h-container-${room.humId}"><span id="h-val-${room.humId}">--</span></span>
-                                    <span class="unit">${label2}</span>
-                                </div>
-                            </div>` : ''}
-                        </div>
-                        ${room.statusId ? `
-                        <div class="status-indicator">
-                            <div id="led-${room.statusId}" class="led"></div>
-                            <div id="text-${room.statusId}" class="status-text">...</div>
-                        </div>` : ''}
-                    </div>
-                </div>`;
-            }).join('');
-        }
+  async function updateData() {
+    const apiKey = localStorage.getItem('emoncms_apikey');
+    if (!apiKey) return setStatus('Missing API Key', true);
 
-        function updateGauge(elId, val, min, max, colorFn) {
-            const el = document.getElementById(elId);
-            if(!el) return;
-            const clamped = Math.min(Math.max(val, min), max);
-            const percent = (clamped - min) / (max - min);
-            el.style.strokeDashoffset = 110 - (percent * 110);
-            el.style.stroke = colorFn(val);
-        }
+    const btn = document.getElementById('saveBtn');
+    btn.disabled = true;
+    setStatus('Fetching data from Emoncms...');
 
-        async function fetchEmoncmsData(targetUrl) {
-            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-            const response = await fetch(proxyUrl);
-            if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
-            
-            const wrapper = await response.json();
-            if (!wrapper.contents) throw new Error("Empty proxy response");
-            
-            return JSON.parse(wrapper.contents);
-        }
+    try {
+      const data = await fetchEmoncmsData(apiKey);
+      renderReadings(data);
+      setStatus(`Last updated: ${new Date().toLocaleTimeString()}`);
+    } catch (err) {
+      console.error('Dashboard sync error:', err);
+      setStatus(`Dashboard sync error: ${err.message}`, true);
+    } finally {
+      btn.disabled = false;
+    }
+  }
 
-        async function updateData() {
-            if (!API_KEY) {
-                document.getElementById('status').innerHTML = "No API Key configured. <span onclick='openApiKeyModal()'>Set API Key</span>";
-                return;
-            }
+  function renderReadings(data) {
+    const grid = document.getElementById('readingsGrid');
+    grid.innerHTML = '';
 
-            const ids = rooms
-                .flatMap(r => [r.tempId, r.humId, r.statusId])
-                .filter(id => Boolean(id));
+    FEED_IDS.forEach(id => {
+      const val = data[id] !== undefined ? data[id] : 'N/A';
+      const card = document.createElement('div');
+      card.className = 'metric';
+      card.innerHTML = `
+        <div class="metric-id">Feed ID: ${id}</div>
+        <div class="metric-val">${typeof val === 'number' ? val.toFixed(1) : val}</div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+</script>
 
-            const url = `https://emoncms.org/feed/fetch.json?ids=${ids.join(',')}&apikey=${API_KEY}`;
-
-            try {
-                const dataArray = await fetchEmoncmsData(url);
-                const dataMap = {};
-                ids.forEach((id, index) => { dataMap[id] = parseFloat(dataArray[index]); });
-
-                rooms.forEach(room => {
-                    const cur1 = dataMap[room.tempId];
-                    if (!isNaN(cur1)) {
-                        document.getElementById(`t-val-${room.tempId}`).innerText = room.id === "solar" ? cur1.toFixed(2) : cur1.toFixed(1);
-                        
-                        if (room.id === "solar") {
-                            updateGauge(`t-arc-${room.tempId}`, getSunProgress(), 0, 100, () => '#f1c40f');
-                        } else {
-                            const minT = room.id === "hot-water" ? 10 : 15;
-                            const maxT = room.id === "hot-water" ? 70 : 30;
-                            const colorFn = room.id === "hot-water" ? (t => t < 45 ? '#40c4ff' : '#ff5252') : (t => t < 24 ? '#00e676' : '#ff5252');
-                            updateGauge(`t-arc-${room.tempId}`, cur1, minT, maxT, colorFn);
-                        }
-                    }
-
-                    if (room.humId) {
-                        const cur2 = dataMap[room.humId];
-                        if (!isNaN(cur2)) {
-                            document.getElementById(`h-val-${room.humId}`).innerText = Math.round(cur2);
-                            if (room.id === "solar") {
-                                updateGauge(`h-arc-${room.humId}`, cur2, 0, 3500, () => '#f39c12');
-                            } else {
-                                updateGauge(`h-arc-${room.humId}`, cur2, 30, 70, (h => h < 60 ? '#00e676' : '#ff5252'));
-                            }
-                        }
-                    }
-
-                    if (room.statusId) {
-                        const val = dataMap[room.statusId];
-                        const led = document.getElementById(`led-${room.statusId}`);
-                        const txt = document.getElementById(`text-${room.statusId}`);
-                        if (led && txt) {
-                            const isOn = val === 1;
-                            led.className = isOn ? 'led on' : 'led off';
-                            txt.innerText = isOn ? 'Hot Water ON' : 'Hot Water OFF';
-                            txt.style.color = isOn ? 'var(--on-color)' : 'var(--off-color)';
-                        }
-                    }
-                });
-                
-                fetchError = false;
-                lastSuccessTime = Date.now();
-                updateTimeAgo();
-            } catch (e) { 
-                console.error("Dashboard sync error:", e);
-                fetchError = true;
-                document.getElementById('status').innerHTML = `Sync Error | <span onclick='openApiKeyModal()'>Check Key</span> | <span onclick='updateData()'>Retry</span>`; 
-            }
-        }
-
-        function updateTimeAgo() {
-            if (!API_KEY) {
-                document.getElementById('status').innerHTML = "No API Key configured. <span onclick='openApiKeyModal()'>Set API Key</span>";
-                return;
-            }
-            if (fetchError) return;
-            if (!lastSuccessTime) {
-                document.getElementById('status').innerHTML = "Connecting to EmonCMS... | <span onclick='openApiKeyModal()'>Settings</span>";
-                return;
-            }
-            const diff = Math.floor((Date.now() - lastSuccessTime) / 1000);
-            let text = diff < 60 ? `${diff}s ago` : `${Math.floor(diff/60)}m ago`;
-            document.getElementById('status').innerHTML = `Updated ${text} | <span onclick='openApiKeyModal()'>Settings</span>`;
-        }
-
-        createCards();
-        updateData();
-        setInterval(updateData, 60000);
-        setInterval(updateTimeAgo, 1000);
-    </script>
 </body>
 </html>
